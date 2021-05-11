@@ -613,6 +613,143 @@ module.exports = {
           }
         )
       }
+    },
+    /**
+     * Generates a presigned URL for HTTP GET operations. Browsers/Mobile clients may point to this URL to directly download objects even if the bucket is private. This presigned URL can have an
+     * associated expiration time in seconds after which the URL is no longer valid. The default value is 7 days.
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     * @param {number} expires - Expiry time in seconds. Default value is 7 days. (optional)
+     * @param {object} reqParams - request parameters. (optional)
+     * @param {string} requestDate - An ISO date string, the url will be issued at. Default value is now. (optional)
+     * @returns {PromiseLike<String|Error>}
+     */
+    presignedGetObject: {
+      params: {
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' },
+        expires: { type: 'number', integer: true, optional: true },
+        reqParams: { type: 'object', optional: true },
+        requestDate: { type: 'string', optional: true }
+      },
+      handler(ctx) {
+        const { bucketName, objectName, expires, reqParams, requestDate } = ctx.params
+        const command = new GetObjectCommand({
+          Bucket: bucketName,
+          Key: objectName
+        })
+
+        if (isFunction(reqParams)) {
+          reqParams = {}
+          requestDate = new Date()
+        }
+
+        var validRespHeaders = [
+          'response-content-type',
+          'response-content-language',
+          'response-expires',
+          'response-cache-control',
+          'response-content-disposition',
+          'response-content-encoding'
+        ]
+        validRespHeaders.forEach(header => {
+          if (
+            reqParams !== undefined &&
+            reqParams[header] !== undefined &&
+            !isString(reqParams[header])
+          ) {
+            throw new TypeError(`response header ${header} should be of type "string"`)
+          }
+        })
+
+        return getSignedUrl(this.client, command, {
+          expiresIn: expires ?? 3600,
+          signingDate: requestDate ?? new Date(),
+          signableHeaders: reqParams
+        })
+      }
+    },
+    /**
+     * Generates a presigned URL for HTTP PUT operations. Browsers/Mobile clients may point to this URL to upload objects directly to a bucket even if it is private. This presigned URL can have
+     * an associated expiration time in seconds after which the URL is no longer valid. The default value is 7 days.
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     * @param {number} expires - Expiry time in seconds. Default value is 7 days. (optional)
+     * @returns {PromiseLike<String|Error>}
+     */
+    presignedPutObject: {
+      params: {
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' },
+        expires: { type: 'number', integer: true, optional: true }
+      },
+      handler(ctx) {
+        const { bucketName, objectName, expires } = ctx.params
+        const command = new PutObjectCommand({
+          Bucket: bucketName,
+          Key: objectName
+        })
+
+        return getSignedUrl(this.client, command, {
+          expiresIn: expires ?? 3600
+        })
+      }
+    },
+    /**
+     * Allows setting policy conditions to a presigned URL for POST operations. Policies such as bucket name to receive object uploads, key name prefixes, expiry policy may be set.
+     *
+     * @actions
+     * @param {object} policy - Policy object created by minioClient.newPostPolicy()
+     * @returns {PromiseLike<{postURL: {string}, formData: {object}}|Error>}
+     */
+    presignedPostPolicy: {
+      params: {
+        policy: {
+          type: 'object',
+          properties: {
+            expires: { type: 'string', optional: true },
+            key: { type: 'string', optional: true },
+            keyStartsWith: { type: 'string', optional: true },
+            bucket: { type: 'string', optional: true },
+            contentType: { type: 'string', optional: true },
+            contentLengthRangeMin: { type: 'number', integer: true, optional: true },
+            contentLengthRangeMax: { type: 'number', integer: true, optional: true }
+          }
+        }
+      },
+      handler(ctx) {
+        const { policy } = ctx.params
+
+        return this.Promise.resolve(ctx.params).then(({ policy }) => {
+          const _policy = this.client.newPostPolicy()
+          if (policy.expires) {
+            _policy.setExpires(new Date(policy.expires))
+          }
+          if (policy.key) {
+            _policy.setKey(policy.key)
+          }
+          if (policy.keyStartsWith) {
+            _policy.setKeyStartsWith(policy.keyStartsWith)
+          }
+          if (policy.bucket) {
+            _policy.setBucket(policy.bucket)
+          }
+          if (policy.contentType) {
+            _policy.setContentType(policy.contentType)
+          }
+          if (policy.contentLengthRangeMin && policy.contentLengthRangeMax) {
+            _policy.setContentLengthRange(
+              policy.contentLengthRangeMin,
+              policy.contentLengthRangeMax
+            )
+          }
+          return this.client.presignedPostPolicy(_policy)
+        })
+      }
     }
   },
 
