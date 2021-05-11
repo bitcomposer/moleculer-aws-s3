@@ -13,8 +13,49 @@ import {
   ListObjectsV2Command,
   ListBucketsCommand,
   HeadBucketCommand,
-  DeleteBucketCommand
+  DeleteBucketCommand,
+  AbortMultipartUploadRequest,
+  GetObjectCommand,
+  CopyObjectCommand,
+  HeadObjectCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand
 } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import fs from 'fs'
+import {
+  extractMetadata,
+  prependXAMZMeta,
+  isValidPrefix,
+  isValidEndpoint,
+  isValidBucketName,
+  isValidPort,
+  isValidObjectName,
+  isAmazonEndpoint,
+  getScope,
+  uriEscape,
+  uriResourceEscape,
+  isBoolean,
+  isFunction,
+  isNumber,
+  isString,
+  isObject,
+  isArray,
+  isValidDate,
+  pipesetup,
+  readableStream,
+  isReadableStream,
+  isVirtualHostStyle,
+  insertContentType,
+  makeDateLong,
+  promisify,
+  getVersionId,
+  sanitizeETag,
+  RETENTION_MODES,
+  RETENTION_VALIDITY_UNITS
+} from './helpers.js'
+import _ from 'lodash'
+import { S3PingError, S3InitializationError } from './errors'
 
 module.exports = {
   name: 'aws-s3',
@@ -192,18 +233,382 @@ module.exports = {
         recursive: { type: 'boolean', optional: true }
       },
       handler(ctx) {
+        const { bucketName, prefix, recursive } = ctc.params
+        const keyMarker = ''
+        const uploadIdMarker = ''
+        const delimiter = recursive ? '' : '/'
+
+        return this.listIncompleteUploadsQuery(
+          bucketName,
+          prefix,
+          keyMarker,
+          uploadIdMarker,
+          delimiter
+        )
+      }
+    },
+    /**
+     * Downloads an object as a stream.
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket
+     * @param {string} objectName - Name of the object.
+     *
+     * @returns {PromiseLike<ReadableStream|Error>}
+     */
+    getObject: {
+      params: {
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' }
+      },
+      async handler(ctx) {
+        return this.client.send(
+          new GetObjectCommand({
+            Bucket: ctx.params.bucketName,
+            Key: ctx.params.objectName
+          })
+        )
+      }
+    },
+    /**
+     * Downloads the specified range bytes of an object as a stream.
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     * @param {number} offset - `offset` of the object from where the stream will start.
+     * @param {number} length - `length` of the object that will be read in the stream (optional, if not specified we read the rest of the file from the offset).
+     *
+     * @returns {PromiseLike<ReadableStream|Error>}
+     */
+    getPartialObject: {
+      params: {
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' },
+        offset: { type: 'number' },
+        length: { type: 'number', optional: true }
+      },
+      handler(ctx) {
+        const { offset, length, bucketName, objectName } = ctx.params
+        let range = ''
+
+        if (offset || length) {
+          if (offset) {
+            range = `bytes=${+offset}-`
+          } else {
+            range = 'bytes=0-'
+            offset = 0
+          }
+
+          if (length) {
+            range += `${+length + offset - 1}`
+          }
+        }
+        return this.client.send(
+          new GetObjectCommand({
+            Bucket: bucketName,
+            Key: objectName,
+            Range: range
+          })
+        )
+      }
+    },
+    /**
+     * Downloads and saves the object as a file in the local filesystem.
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     * @param {string} filePath - Path on the local filesystem to which the object data will be written.
+     *
+     * @returns {PromiseLike<undefined|Error>}
+     */
+    fGetObject: {
+      params: {
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' },
+        filePath: { type: 'string' }
+      },
+      async handler(ctx) {
+        const { bucketName, objectName, filePath } = ctx.params
+        const { Body } = await this.client.send(
+          new GetObjectCommand({
+            Bucket: bucketName,
+            Key: objectName
+          })
+        )
+
+        return new Promise((resolve, reject) => {
+          Body.pipe(fs.createWriteStream(filePath))
+            .on('error', err => reject(err))
+            .on('close', () => resolve())
+        })
+      }
+    },
+    /**
+     * Uploads an object from a stream/Buffer.
+     *
+     * @actions
+     * @param {ReadableStream} params - Readable stream.
+     *
+     * @meta
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     * @param {number} size - Size of the object (optional).
+     * @param {object} metaData - metaData of the object (optional).
+     *
+     * @returns {PromiseLike<undefined|Error>}
+     */
+    putObject: {
+      handler(ctx) {
+        return this.Promise.resolve({
+          stream: ctx.params,
+          meta: ctx.meta
+        }).then(({ stream, meta }) =>
+          this.client.send(
+            new PutObjectCommand({
+              Bucket: meta.bucketName,
+              Key: meta.objectName,
+              Body: stream,
+              Metadata: meta.metaData,
+              ContentLength: meta.size
+            })
+          )
+        )
+      }
+    },
+    /**
+     * Uploads contents from a file to objectName.
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     * @param {string} filePath - Path of the file to be uploaded.
+     * @param {object} metaData - metaData of the object (optional).
+     *
+     * @returns {PromiseLike<undefined|Error>}
+     */
+    fPutObject: {
+      params: {
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' },
+        filePath: { type: 'string' },
+        metaData: { type: 'object', optional: true }
+      },
+      handler(ctx) {
+        const { bucketName, objectName, filePath, metaData } = ctx.params
+        const fileStream = fs.createReadStream(filePath)
+        // TODO - Handle large uploads as mmultipart if necessary.  Need to check if PutObjectCommand handles them anyway as I have read something that alluded to that but it may be wishful thinking.
+
+        return this.client.send(
+          new PutObjectCommand({
+            Bucket: bucketName,
+            Key: objectName,
+            Body: fileStream,
+            Metadata: metaData
+          })
+        )
+      }
+    },
+    /**
+     * Copy a source object into a new object in the specified bucket.
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     * @param {string} sourceObject - Path of the file to be copied.
+     * @param {object} conditions - Conditions to be satisfied before allowing object copy.
+     * @param {object} metaData - metaData of the object (optional).
+     *
+     * @returns {PromiseLike<{etag: {string}, lastModified: {string}}|Error>}
+     */
+    copyObject: {
+      params: {
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' },
+        sourceObject: { type: 'string' },
+        conditions: {
+          type: 'object',
+          properties: {
+            modified: { type: 'string', optional: true },
+            unmodified: { type: 'string', optional: true },
+            matchETag: { type: 'string', optional: true },
+            matchETagExcept: { type: 'string', optional: true }
+          }
+        },
+        metaData: { type: 'object', optional: true }
+      },
+      handler(ctx) {
+        const { bucketName, objectName, sourceObject, conditions, metaData } = ctx.params
+        return this.client.send(
+          new CopyObjectCommand({
+            Bucket: bucketName,
+            Key: objectName,
+            CopySource: sourceObject,
+            MetaData: metaData,
+            CopySourceIfMatch: conditions?.matchETag,
+            CopySourceIfModifiedSince: conditions?.modified,
+            CopySourceIfNoneMatch: conditions?.matchETagExcept,
+            CopySourceIfUnmodifiedSince: conditions?.unmodified
+          })
+        )
+      }
+    },
+    /**
+     * Gets metadata of an object.
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     *
+     * @returns {PromiseLike<{size: {number}, metaData: {object}, lastModified: {string}, etag: {string}}|Error>}
+     */
+    statObject: {
+      params: {
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' }
+      },
+      handler(ctx) {
+        return this.client.send(
+          new HeadObjectCommand({
+            Bucket: ctx.params.bucketName,
+            Key: ctx.params.objectName
+          })
+        )
+      }
+    },
+    /**
+     * Removes an Object
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     *
+     * @returns {PromiseLike<undefined|Error>}
+     */
+    removeObject: {
+      params: {
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' }
+      },
+      handler(ctx) {
+        return this.client.send(
+          new DeleteObjectCommand({
+            Bucket: ctx.params.bucketName,
+            Key: ctx.params.objectName
+          })
+        )
+      }
+    },
+    /**
+     * Removes a list of Objects
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string[]} objectNames - Names of the objects.
+     *
+     * @returns {PromiseLike<undefined|Error>}
+     */
+    removeObjects: {
+      params: {
+        bucketName: { type: 'string' },
+        objectNames: { type: 'array', items: 'string' }
+      },
+      handler(ctx) {
+        return this.client.send(
+          new DeleteObjectsCommand({
+            Bucket: ctx.params.bucketName,
+            Delete: {
+              Objects: ctx.params.objectNames
+            }
+          })
+        )
+      }
+    },
+    /**
+     * Removes a partially uploaded object.
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     *
+     * @returns {PromiseLike<undefined|Error>}
+     */
+    removeIncompleteUpload: {
+      params: {
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' }
+      },
+      async handler(ctx) {
+        const { bucketName, objectName } = ctc.params
+        const keyMarker = ''
+        const uploadIdMarker = ''
+        const delimiter = '/'
+
+        // list the uploads
+        const uploads = await this.listIncompleteUploadsQuery(
+          bucketName,
+          objectName,
+          keyMarker,
+          uploadIdMarker,
+          delimiter
+        )
+        const deleteKeys = _map(uploads, 'Key')
+        return this.client.send(
+          new DeleteObjectsCommand({
+            Bucket: ctx.params.bucketName,
+            Delete: {
+              Objects: deleteKeys
+            }
+          })
+        )
+      }
+    },
+    /**
+     * Generates a presigned URL for the provided HTTP method, 'httpMethod'. Browsers/Mobile clients may point to this URL to directly download objects even if the bucket is private. This
+     * presigned URL can have an associated expiration time in seconds after which the URL is no longer valid. The default value is 7 days.
+     *
+     * @actions
+     * @param {string} httpMethod - The HTTP-Method (eg. `GET`).
+     * @param {string} bucketName - Name of the bucket.
+     * @param {string} objectName - Name of the object.
+     * @param {number} expires - Expiry time in seconds. Default value is 7 days. (optional)
+     * @param {object} reqParams - request parameters. (optional)
+     * @param {string} requestDate - An ISO date string, the url will be issued at. Default value is now. (optional)
+     * @returns {PromiseLike<String|Error>}
+     */
+    presignedUrl: {
+      params: {
+        httpMethod: { type: 'string' },
+        bucketName: { type: 'string' },
+        objectName: { type: 'string' },
+        expires: { type: 'number', integer: true, optional: true },
+        reqParams: { type: 'object', optional: true },
+        requestDate: { type: 'string', optional: true }
+      },
+      handler(ctx) {
         return this.Promise.resolve(ctx.params).then(
-          ({ bucketName, prefix = '', recursive = false }) => {
+          ({ httpMethod, bucketName, objectName, expires, reqParams, requestDate }) => {
+            if (isString(requestDate)) {
+              requestDate = new Date(requestDate)
+            }
+
             return new this.Promise((resolve, reject) => {
-              try {
-                const stream = this.client.listIncompleteUploads(bucketName, prefix, recursive)
-                const objects = []
-                stream.on('data', el => objects.push(el))
-                stream.on('end', () => resolve(objects))
-                stream.on('error', reject)
-              } catch (e) {
-                reject(e)
-              }
+              this.client.presignedUrl(
+                httpMethod,
+                bucketName,
+                objectName,
+                expires,
+                reqParams,
+                requestDate,
+                (error, url) => {
+                  if (error) {
+                    reject(error)
+                  } else {
+                    resolve(url)
+                  }
+                }
+              )
             })
           }
         )
@@ -258,7 +663,7 @@ module.exports = {
       return this.Promise.race([
         this.client.listBuckets().then(() => true),
         this.Promise.delay(timeout).then(() => {
-          throw new MinioPingError()
+          throw new S3PingError()
         })
       ])
     },
@@ -272,6 +677,69 @@ module.exports = {
         await getAllKeys(params, allKeys) // RECURSIVE CALL
       }
       return allKeys
+    },
+
+    async listIncompleteUploadsQuery(bucketName, prefix, keyMarker, uploadIdMarker, delimiter) {
+      if (!isValidBucketName(bucketName)) {
+        throw new errors.InvalidBucketNameError('Invalid bucket name: ' + bucketName)
+      }
+      if (!isString(prefix)) {
+        throw new TypeError('prefix should be of type "string"')
+      }
+      if (!isString(keyMarker)) {
+        throw new TypeError('keyMarker should be of type "string"')
+      }
+      if (!isString(uploadIdMarker)) {
+        throw new TypeError('uploadIdMarker should be of type "string"')
+      }
+      if (!isString(delimiter)) {
+        throw new TypeError('delimiter should be of type "string"')
+      }
+
+      let truncated = true
+      let objectList = []
+      const params = {
+        Bucket: bucketName,
+        KeyMarker: keyMarker,
+        Prefix: prefix,
+        UploadIdMarker: uploadIdMarker,
+        Delimiter: delimiter
+      }
+
+      do {
+        const res = await this.client.send(new ListMultipartUploadsCommand(params))
+        params.KeyMarker = res.NextKeyMarker
+        params.UploadIdMarker = res.NextUploadIdMarker
+        truncated = res.IsTruncated
+        objectList = objectList.concat(res.Uploads)
+      } while (truncated)
+
+      return objectList
+    },
+
+    async findUploadId(bucketName, objectName) {
+      if (!isValidBucketName(bucketName)) {
+        throw new errors.InvalidBucketNameError('Invalid bucket name: ' + bucketName)
+      }
+      if (!isValidObjectName(objectName)) {
+        throw new errors.InvalidObjectNameError(`Invalid object name: ${objectName}`)
+      }
+      if (!isFunction(cb)) {
+        throw new TypeError('cb should be of type "function"')
+      }
+      var latestUpload
+      const result = await this.listIncompleteUploadsQuery(bucketName, objectName, '', '', '')
+
+      result.forEach(upload => {
+        if (upload.key === objectName) {
+          if (!latestUpload || upload.initiated.getTime() > latestUpload.initiated.getTime()) {
+            latestUpload = upload
+            return
+          }
+        }
+      })
+
+      return latestUpload?.uploadId
     }
   },
 
