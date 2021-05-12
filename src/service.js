@@ -3,13 +3,12 @@
  * Copyright (c) 2021 Kenneth Shepherd (https://github.com/bitcomposer/moleculer-aws-s3)
  * MIT Licensed
  */
-
-'use strict'
-
+import Minio from 'minio'
 import {
   S3Client,
   PutObjectCommand,
   CreateBucketCommand,
+  ListObjectsCommand,
   ListObjectsV2Command,
   ListBucketsCommand,
   HeadBucketCommand,
@@ -57,6 +56,12 @@ import {
 import _ from 'lodash'
 import { S3PingError, S3InitializationError } from './errors'
 
+/**
+ * Service mixin for managing files in a AWS S3 backend
+ *
+ * @name moleculer-aws-s3
+ * @module Service
+ */
 module.exports = {
   name: 'aws-s3',
 
@@ -178,6 +183,43 @@ module.exports = {
         )
       }
     },
+    /**
+     * Lists all objects in a bucket.
+     *
+     * @actions
+     * @param {string} bucketName - Name of the bucket
+     * @param {string} prefix - The prefix of the objects that should be listed (optional, default '').
+     * @param {boolean} recursive - `true` indicates recursive style listing and false indicates directory style listing delimited by '/'. (optional, default `false`).
+     *
+     * @returns {PromiseLike<Object[]|Error>}
+     */
+    listObjects: {
+      params: {
+        bucketName: { type: 'string' },
+        prefix: { type: 'string', optional: true },
+        recursive: { type: 'boolean', optional: true }
+      },
+      async handler(ctx) {
+        const { bucketName, prefix, recursive }
+        let truncated = true
+        let objectList = []
+        const params = {
+          Bucket: bucketName,
+          Marker: undefined,
+          Prefix: prefix,
+          Delimiter: recursive ? '' : '/'
+        }
+
+        do {
+          const res = await this.client.send(new ListObjectsCommand(params))
+          params.Marker = res.NextMarker
+          truncated = res.IsTruncated
+          objectList = objectList.concat(res.Contents)
+        } while (truncated)
+
+        return objectList
+      }
+    },
 
     /**
      * Lists all objects in a bucket using S3 listing objects V2 API
@@ -190,7 +232,7 @@ module.exports = {
      *
      * @returns {PromiseLike<Object[]|Error>}
      */
-    listObjects: {
+    listObjectsV2: {
       params: {
         bucketName: { type: 'string' },
         prefix: { type: 'string', optional: true },
@@ -587,6 +629,7 @@ module.exports = {
         requestDate: { type: 'string', optional: true }
       },
       handler(ctx) {
+        //TODO - convert to aws v3
         return this.Promise.resolve(ctx.params).then(
           ({ httpMethod, bucketName, objectName, expires, reqParams, requestDate }) => {
             if (isString(requestDate)) {
