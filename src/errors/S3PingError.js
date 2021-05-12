@@ -1,7 +1,7 @@
 const { MoleculerRetryableError } = require('moleculer/src/errors')
 
 /**
- * Error that should be thrown when the Minio Backend can not be pinged
+ * Error that should be thrown when the S3 Backend can not be pinged
  *
  * @class S3PingError
  * @extends {MoleculerRetryableError}
@@ -15,7 +15,7 @@ module.exports = class S3PingError extends MoleculerRetryableError {
    * @param {String?} type
    * @param {any} data
    *
-   * @memberof MinioPingError
+   * @memberof S3PingError
    */
   constructor(message = 'S3 Backend not reachable', code = 502, type = 'S3_PING_ERROR', data = {}) {
     super(message)

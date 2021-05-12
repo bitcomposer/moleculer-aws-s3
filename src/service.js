@@ -3,7 +3,6 @@
  * Copyright (c) 2021 Kenneth Shepherd (https://github.com/bitcomposer/moleculer-aws-s3)
  * MIT Licensed
  */
-import Minio from 'minio'
 import {
   S3Client,
   PutObjectCommand,
@@ -52,7 +51,7 @@ import {
   sanitizeETag,
   RETENTION_MODES,
   RETENTION_VALIDITY_UNITS
-} from './helpers.js'
+} from './utils/helpers.js'
 import _ from 'lodash'
 import { S3PingError, S3InitializationError } from './errors'
 
@@ -200,7 +199,7 @@ module.exports = {
         recursive: { type: 'boolean', optional: true }
       },
       async handler(ctx) {
-        const { bucketName, prefix, recursive }
+        const { bucketName, prefix, recursive } = ctx.params
         let truncated = true
         let objectList = []
         const params = {
@@ -746,7 +745,7 @@ module.exports = {
      * Allows setting policy conditions to a presigned URL for POST operations. Policies such as bucket name to receive object uploads, key name prefixes, expiry policy may be set.
      *
      * @actions
-     * @param {object} policy - Policy object created by minioClient.newPostPolicy()
+     * @param {object} policy - Policy object created by s3Client.newPostPolicy()
      * @returns {PromiseLike<{postURL: {string}, formData: {object}}|Error>}
      */
     presignedPostPolicy: {
@@ -801,14 +800,14 @@ module.exports = {
    */
   methods: {
     /**
-     * Creates and returns a new Minio client
+     * Creates and returns a new S3 client
      *
      * @methods
      *
      * @returns {Client}
      */
     createAwsS3Client() {
-      const endpoint
+      let endpoint
 
       if (this.settings.endPoint) {
         enpoint = {
@@ -834,7 +833,7 @@ module.exports = {
       return s3
     },
     /**
-     * Pings the configured minio backend
+     * Pings the configured S3 backend
      *
      * @param {number} timeout - Amount of miliseconds to wait for a ping response
      * @returns {PromiseLike<boolean|S3PingError>}
