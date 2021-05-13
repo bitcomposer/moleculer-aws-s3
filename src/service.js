@@ -3,7 +3,7 @@
  * Copyright (c) 2021 Kenneth Shepherd (https://github.com/bitcomposer/moleculer-aws-s3)
  * MIT Licensed
  */
-import {
+const {
   S3Client,
   PutObjectCommand,
   CreateBucketCommand,
@@ -18,10 +18,10 @@ import {
   HeadObjectCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand
-} from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import fs from 'fs'
-import {
+} = require('@aws-sdk/client-s3')
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
+const fs = require('fs')
+const {
   extractMetadata,
   prependXAMZMeta,
   isValidPrefix,
@@ -51,9 +51,9 @@ import {
   sanitizeETag,
   RETENTION_MODES,
   RETENTION_VALIDITY_UNITS
-} from './utils/helpers.js'
-import _ from 'lodash'
-import { S3PingError, S3InitializationError } from './errors'
+} = require('./utils/helpers.js')
+const _ = require('lodash')
+const { S3PingError, S3InitializationError } = require('./errors')
 
 /**
  * Service mixin for managing files in a AWS S3 backend
@@ -80,14 +80,14 @@ module.exports = {
     secretKey: undefined,
     /** @type {String?} Set this value to override region cache*/
     region: undefined,
-    /** @type {String?} Set this value to pass in a custom transport. (Optional)*/
-    transport: undefined,
     /** @type {String?} Set this value to provide x-amz-security-token (AWS S3 specific). (Optional)*/
     sessionToken: undefined,
     /** @type {Number?} This service will perform a periodic healthcheck of s3. Use this setting to configure the inverval in which the healthcheck is performed. Set to `0` to turn healthcheks of */
     s3HealthCheckInterval: 5000,
     /** @type {Boolean?} If set to true, path style is used instead of virtual host style. Default is false.*/
-    s3ForcePathStyle: false
+    s3ForcePathStyle: false,
+    /** @type {Boolean?} If set to true, the endpoint is set as is. Default is false.*/
+    endPointIsString: false
   },
 
   /**
@@ -131,7 +131,7 @@ module.exports = {
       handler() {
         return this.client
           .send(new ListBucketsCommand({}))
-          .then(buckets => (isUndefined(buckets) ? [] : buckets))
+          .then(buckets => (_.isUndefined(buckets) ? [] : buckets))
       }
     },
     /**
@@ -211,8 +211,8 @@ module.exports = {
 
         do {
           const res = await this.client.send(new ListObjectsCommand(params))
-          params.Marker = res.NextMarker
-          truncated = res.IsTruncated
+          params.Marker = res?.NextMarker
+          truncated = res?.IsTruncated
           objectList = objectList.concat(res.Contents)
         } while (truncated)
 
@@ -250,8 +250,8 @@ module.exports = {
 
         do {
           const res = await this.client.send(new ListObjectsV2Command(params))
-          params.ContinuationToken = res.NextContinuationToken
-          objectList = objectList.concat(res.Contents)
+          params.ContinuationToken = res?.NextContinuationToken
+          objectList = objectList.concat(res?.Contents)
         } while (params.ContinuationToken !== undefined)
 
         return objectList
@@ -274,7 +274,7 @@ module.exports = {
         recursive: { type: 'boolean', optional: true }
       },
       handler(ctx) {
-        const { bucketName, prefix, recursive } = ctc.params
+        const { bucketName, prefix, recursive } = ctx.params
         const keyMarker = ''
         const uploadIdMarker = ''
         const delimiter = recursive ? '' : '/'
@@ -332,17 +332,19 @@ module.exports = {
       handler(ctx) {
         const { offset, length, bucketName, objectName } = ctx.params
         let range = ''
+        let offsetWrk = offset
+        let lengthWrk = length
 
-        if (offset || length) {
-          if (offset) {
-            range = `bytes=${+offset}-`
+        if (offsetWrk || lengthWrk) {
+          if (offsetWrk) {
+            range = `bytes=${+offsetWrk}-`
           } else {
             range = 'bytes=0-'
-            offset = 0
+            offsetWrk = 0
           }
 
-          if (length) {
-            range += `${+length + offset - 1}`
+          if (lengthWrk) {
+            range += `${+lengthWrk + offsetWrk - 1}`
           }
         }
         return this.client.send(
@@ -581,7 +583,7 @@ module.exports = {
         objectName: { type: 'string' }
       },
       async handler(ctx) {
-        const { bucketName, objectName } = ctc.params
+        const { bucketName, objectName } = ctx.params
         const keyMarker = ''
         const uploadIdMarker = ''
         const delimiter = '/'
@@ -809,26 +811,28 @@ module.exports = {
     createAwsS3Client() {
       let endpoint
 
-      if (this.settings.endPoint) {
+      if (this.settings?.endPointIsString == false && this.settings?.endPoint) {
         enpoint = {
-          hostname: this.settings.endPoint,
-          port: this.settings.port,
-          protocol: this.settings.useSSL ? 'https' : 'http'
+          hostname: this.settings?.endPoint,
+          port: this.settings?.port,
+          protocol: this.settings?.useSSL ? 'https' : 'http'
         }
+      } else {
+        endpoint = this.settings?.endPoint
       }
 
       const credentials = {
-        accessKeyId: this.settings.accessKey,
-        secretAccessKey: this.settings.secretKey
+        accessKeyId: this.settings?.accessKey,
+        secretAccessKey: this.settings?.secretKey
       }
 
       const s3 = new S3Client({
         // Let the aws lib sort out the endpoint if we are using amz aws.
         endpoint: endpoint,
         credentials,
-        region: this.settings.region,
+        region: this.settings?.region,
         signatureVersion: 'v4',
-        forcePathStyle: this.setting.s3ForcePathStyle
+        forcePathStyle: this.setting?.s3ForcePathStyle
       })
       return s3
     },
@@ -840,7 +844,7 @@ module.exports = {
      */
     ping({ timeout = 5000 } = {}) {
       return this.Promise.race([
-        this.client.listBuckets().then(() => true),
+        this.client.send(new ListBucketsCommand({})).then(() => true),
         this.Promise.delay(timeout).then(() => {
           throw new S3PingError()
         })

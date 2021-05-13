@@ -7,7 +7,7 @@ describe('Service', () => {
       it('resolves if the backend is reachable', () => {
         let context = {
           client: {
-            listBuckets: jest.fn().mockReturnValue(Promise.resolve())
+            send: jest.fn().mockReturnValue(Promise.resolve())
           },
           Promise
         }
@@ -21,7 +21,7 @@ describe('Service', () => {
       it('rejects if the backend is not reachable', () => {
         let context = {
           client: {
-            listBuckets: jest.fn().mockReturnValue(Promise.delay(1000))
+            send: jest.fn().mockReturnValue(Promise.delay(1000))
           },
           Promise
         }

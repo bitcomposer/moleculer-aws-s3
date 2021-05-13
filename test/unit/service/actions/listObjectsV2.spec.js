@@ -1,100 +1,69 @@
-const Service = () => require('service');
-const Promise = require('bluebird');
+const Service = () => require('service')
+const Promise = require('bluebird')
+const { ListObjectsV2Command } = require('@aws-sdk/client-s3')
+
 describe('Service', () => {
-	describe('actions', () => {
-		describe('listObjectsV2', () => {
-			it('lists all objects in a Bucket', () => {
-				let stream = {
-					on: jest.fn()
-				};
-				let context = {
-					client: {
-						listObjectsV2: jest.fn().mockReturnValue(stream)
-					},
-					Promise
-				};
-				const bucketName = 'someBucket';
-				const prefix = 'some-prefix';
-				const recursive = true;
-				const startAfter = 'that';
-				const listing = Service().actions.listObjectsV2.handler.bind(context)({params: {bucketName, prefix, recursive, startAfter}});
-				return Promise.delay(100).then(() => {
-					stream.on.mock.calls.find(e => e[0] === 'data')[1]({foo: 'bar'});
-					stream.on.mock.calls.find(e => e[0] === 'end')[1]();
-				})
-					.then(() => listing)
-					.then(r => {
-						expect(context.client.listObjectsV2.mock.calls[0]).toEqual([bucketName, prefix, recursive, startAfter]);
-						expect(r).toEqual([{foo: 'bar'}]);
-					});
-			});
+  describe('actions', () => {
+    describe('listObjectsV2', () => {
+      it('lists all objects in a Bucket - v2', () => {
+        let stream = {
+          Contents: [{ foo: 'bar' }]
+        }
+        let context = {
+          client: {
+            send: jest.fn().mockReturnValue(stream)
+          },
+          Promise
+        }
+        const bucketName = 'someBucket'
+        const prefix = 'some-prefix'
+        const startAfter = 'that'
+        const recursive = true
+        return Service()
+          .actions.listObjectsV2.handler.bind(context)({
+            params: { bucketName, prefix, recursive, startAfter }
+          })
+          .then(r => {
+            const params = {
+              Bucket: bucketName,
+              Prefix: prefix,
+              StartAfter: startAfter,
+              Delimiter: recursive ? '' : '/'
+            }
+            const command = new ListObjectsV2Command(params)
+            expect(JSON.stringify(context.client.send.mock.calls[0][0])).toBe(
+              JSON.stringify(command)
+            )
+            expect(r).toEqual([{ foo: 'bar' }])
+          })
+      })
 
-			it('assumes prefix and recursive if not given', () => {
-				let stream = {
-					on: jest.fn()
-				};
-				let context = {
-					client: {
-						listObjectsV2: jest.fn().mockReturnValue(stream)
-					},
-					Promise
-				};
-				const bucketName = 'someBucket';
-				const listing = Service().actions.listObjectsV2.handler.bind(context)({params: {bucketName}});
-				return Promise.delay(100).then(() => {
-					stream.on.mock.calls.find(e => e[0] === 'data')[1]({foo: 'bar'});
-					stream.on.mock.calls.find(e => e[0] === 'end')[1]();
-				})
-					.then(() => listing)
-					.then(r => {
-						expect(context.client.listObjectsV2.mock.calls[0]).toEqual([bucketName, '', false, '']);
-						expect(r).toEqual([{foo: 'bar'}]);
-					});
-			});
+      it('assumes prefix and recursive if not given - v2', () => {
+        let stream = {
+          Contents: [{ foo: 'bar' }]
+        }
+        let context = {
+          client: {
+            send: jest.fn().mockReturnValue(stream)
+          },
+          Promise
+        }
+        const bucketName = 'someBucket'
 
-			it('rejects if the stream encountered an error', () => {
-				let stream = {
-					on: jest.fn()
-				};
-				let context = {
-					client: {
-						listObjectsV2: jest.fn().mockReturnValue(stream)
-					},
-					Promise
-				};
-				const bucketName = 'someBucket';
-				const prefix = 'some-prefix';
-				const recursive = true;
-				const startAfter = 'that';
-				const listing = Service().actions.listObjectsV2.handler.bind(context)({params: {bucketName, prefix, recursive, startAfter}});
-				return Promise.delay(100).then(() => {
-					stream.on.mock.calls.find(e => e[0] === 'error')[1](new Error('something went wrong'));
-				})
-					.then(() => listing)
-					.catch(e => {
-						expect(e.message).toEqual('something went wrong');
-					});
-			});
-
-			it('rejects if the stream acquisition encountered an error', () => {
-				let stream = {
-					on: jest.fn()
-				};
-				let context = {
-					client: {
-						listObjectsV2: () => {throw new Error('something went wrong');}
-					},
-					Promise
-				};
-				const bucketName = 'someBucket';
-				const prefix = 'some-prefix';
-				const recursive = true;
-				const startAfter = 'that';
-				return Service().actions.listObjectsV2.handler.bind(context)({params: {bucketName, prefix, recursive, startAfter}})
-					.catch(e => {
-						expect(e.message).toEqual('something went wrong');
-					});
-			});
-		});
-	});
-});
+        return Service()
+          .actions.listObjectsV2.handler.bind(context)({ params: { bucketName } })
+          .then(r => {
+            const params = {
+              Bucket: bucketName,
+              Delimiter: '/'
+            }
+            const command = new ListObjectsV2Command(params)
+            expect(JSON.stringify(context.client.send.mock.calls[0][0])).toBe(
+              JSON.stringify(command)
+            )
+            expect(r).toEqual([{ foo: 'bar' }])
+          })
+      })
+    })
+  })
+})

@@ -3,16 +3,16 @@ describe('Service', () => {
   describe('settings', () => {
     it('uses sensitive defaults', () => {
       expect(Service.settings).toEqual({
-        endpoint: undefined,
+        endPoint: undefined,
         port: undefined,
         useSSL: true,
         accessKey: undefined,
         secretKey: undefined,
         region: undefined,
-        transport: undefined,
         sessionToken: undefined,
         s3HealthCheckInterval: 5000,
-        s3ForcePathStyle: false
+        s3ForcePathStyle: false,
+        endPointIsString: false
       })
     })
   })

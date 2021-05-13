@@ -2,24 +2,39 @@ const Service = () => require('service')
 describe('Service', () => {
   describe('methods', () => {
     describe('createAwsS3Client', () => {
-      it('constructs a new S3 Client', () => {
+      it('constructs a new S3 Client using aws endpoint', async () => {
         let service = Service()
-        service.settings.endPoint = 'dfght'
-        service.settings.port = 12345
-        service.settings.useSSL = false
         service.settings.accessKey = 'sadgds'
         service.settings.secretKey = 'dfgdfg'
         service.settings.region = 'sgegd'
-        service.settings.transport = { foo: 'bar' }
+        service.settings.endPointIsString = false
         const client = service.methods.createAwsS3Client.bind(service)()
-        expect(client.constructor.name).toEqual('Client')
-        expect(client.accessKey).toEqual(service.settings.accessKey)
-        expect(client.secretKey).toEqual(service.settings.secretKey)
-        expect(client.host).toEqual(service.settings.endPoint)
-        expect(client.port).toEqual(service.settings.port)
-        expect(client.protocol).toEqual('http:')
-        expect(client.region).toEqual(service.settings.region)
-        expect(client.transport).toEqual(service.settings.transport)
+        const credentials = await client.config.credentials()
+        const endpoint = await client.config.endpoint()
+        expect(client.constructor.name).toEqual('S3Client')
+        expect(credentials.accessKeyId).toEqual(service.settings.accessKey)
+        expect(credentials.secretAccessKey).toEqual(service.settings.secretKey)
+        expect(endpoint.hostname).toEqual(`s3.${await client.config.region()}.amazonaws.com`)
+        expect(await client.config.region()).toEqual(service.settings.region)
+      })
+
+      it('constructs a new S3 Client using non aws endpoint', async () => {
+        let service = Service()
+        service.settings.endPoint = 'http://localhost:4000'
+        service.settings.accessKey = 'sadgds'
+        service.settings.secretKey = 'dfgdfg'
+        service.settings.region = 'sgegd'
+        service.settings.endPointIsString = true
+        const client = service.methods.createAwsS3Client.bind(service)()
+        const credentials = await client.config.credentials()
+        const endpoint = await client.config.endpoint()
+        expect(client.constructor.name).toEqual('S3Client')
+        expect(credentials.accessKeyId).toEqual(service.settings.accessKey)
+        expect(credentials.secretAccessKey).toEqual(service.settings.secretKey)
+        expect(endpoint.hostname).toEqual(`localhost`)
+        expect(endpoint.port).toEqual(4000)
+        expect(endpoint.protocol).toEqual(`http:`)
+        expect(await client.config.region()).toEqual(service.settings.region)
       })
     })
   })
