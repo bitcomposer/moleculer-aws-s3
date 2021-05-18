@@ -1,10 +1,7 @@
 const Service = () => require('service')
 const Promise = require('bluebird')
 const { GetObjectCommand } = require('@aws-sdk/client-s3')
-
-jest.mock('fs')
-
-const fs = require('fs')
+const { PassThrough } = require('stream')
 
 describe('Service', () => {
   afterAll(() => {
@@ -13,30 +10,16 @@ describe('Service', () => {
   })
   describe('actions', () => {
     describe('fGetObject', () => {
-      it('accepts a bucket name, an object name and a file path', () => {
-        const mockWriteStream = {
-          on: jest.fn().mockImplementation(function (_this, event, handler) {
-            if (event === 'error') {
-              handler()
-            }
-            return _this
-          })
-        }
-
-        const mockReadStream = {
-          pipe: jest.fn().mockReturnValue(Promise.resolve(mockWriteStream))
-        }
+      it('accepts a bucket name, an object name and a file path', async done => {
+        const mockReadStream = new PassThrough()
 
         let context = {
           client: {
             send: jest.fn().mockReturnValue(Promise.resolve({ Body: mockReadStream }))
           },
+          streamToFile: jest.fn().mockReturnValue(Promise.resolve()),
           Promise
         }
-
-        fs.createWriteStream.mockReturnValue(Promise.resolve(mockWriteStream))
-
-        //mocked(createWriteStream).mockReturnValueOnce(mockWriteStream)
 
         const bucketName = 'some-bucket'
         const objectName = 'some-object'
@@ -50,10 +33,13 @@ describe('Service', () => {
               Bucket: bucketName,
               Key: objectName
             })
-            expect(JSON.stringify(context.client.send.mock.calls[0][0])).toEqual(
+            expect(JSON.stringify(context.client.send.mock.calls[0][0])).toBe(
               JSON.stringify(command)
             )
-            expect(mockReadStream.pipe).toBeCalledTimes(1)
+            expect(context.streamToFile.mock.calls[0][0]).toBe(mockReadStream)
+            expect(context.streamToFile.mock.calls[0][1]).toBe(filePath)
+
+            done()
           })
       })
     })

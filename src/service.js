@@ -381,11 +381,7 @@ module.exports = {
           })
         )
 
-        return new Promise((resolve, reject) => {
-          Body.pipe(fs.createWriteStream(filePath))
-            .on('error', err => reject(err))
-            .on('close', () => resolve())
-        })
+        return this.streamToFile(Body, filePath)
       }
     },
     /**
@@ -596,7 +592,7 @@ module.exports = {
           uploadIdMarker,
           delimiter
         )
-        const deleteKeys = _map(uploads, 'Key')
+        const deleteKeys = _.map(uploads, 'Key')
         return this.client.send(
           new DeleteObjectsCommand({
             Bucket: ctx.params.bucketName,
@@ -923,6 +919,16 @@ module.exports = {
       })
 
       return latestUpload?.uploadId
+    },
+    streamToFile(inputStream, filePath) {
+      return new Promise((resolve, reject) => {
+        const fileWriteStream = fs.createWriteStream(filePath)
+        inputStream
+          .on('error', reject)
+          .pipe(fileWriteStream)
+          .on('finish', resolve)
+          .on('error', reject)
+      })
     }
   },
 

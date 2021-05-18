@@ -29,7 +29,7 @@ describe('Service', () => {
               Body: fileStream,
               Metadata: metaData
             })
-            expect(JSON.stringify(context.client.send.mock.calls[0][0])).toEqual(
+            expect(JSON.stringify(context.client.send.mock.calls[0][0])).toBe(
               JSON.stringify(command)
             )
           })

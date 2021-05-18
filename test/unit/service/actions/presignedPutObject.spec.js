@@ -1,63 +1,54 @@
-const Service = () => require('service');
-const Promise = require('bluebird');
-describe('Service', () => {
-	describe('actions', () => {
-		describe('presigedUrl', () => {
-			it('creates and returns a Presigned URL for creating an Object', () => {
-				let context = {
-					client: {
-						presignedPutObject: jest.fn()
-					},
-					Promise
-				};
-				const bucketName = 'some-bucket';
-				const objectName = 'some-object';
-				const expires = 1535;
-				let creating = Service().actions.presignedPutObject.handler.bind(context)({
-					params: {
-						bucketName,
-						objectName,
-						expires,
-					}
-				});
-				return Promise.delay(100)
-					.then(() => context.client.presignedPutObject.mock.calls[0][3](null, 'https://example.com'))
-					.then(() => creating)
-					.then(r => {
-						expect(r).toEqual('https://example.com');
-						expect(context.client.presignedPutObject.mock.calls[0][0]).toEqual(bucketName);
-						expect(context.client.presignedPutObject.mock.calls[0][1]).toEqual(objectName);
-						expect(context.client.presignedPutObject.mock.calls[0][2]).toEqual(expires);
-					});
-			});
+const Service = () => require('service')
+const Promise = require('bluebird')
+const { PutObjectCommand } = require('@aws-sdk/client-s3')
 
-			it('rejects with errors encountered', () => {
-				let context = {
-					client: {
-						presignedPutObject: jest.fn()
-					},
-					Promise
-				};
-				const bucketName = 'some-bucket';
-				const objectName = 'some-object';
-				const expires = 1535;
-				let creating = Service().actions.presignedPutObject.handler.bind(context)({
-					params: {
-						bucketName,
-						objectName,
-						expires
-					}
-				});
-				return Promise.delay(100)
-					.then(() => context.client.presignedPutObject.mock.calls[0][3](new Error('Something went wrong')))
-					.then(() => creating)
-					.catch(e => {
-						expect(e.message).toEqual('Something went wrong');
-						expect(context.client.presignedPutObject.mock.calls[0][0]).toEqual(bucketName);
-						expect(context.client.presignedPutObject.mock.calls[0][1]).toEqual(objectName);
-						expect(context.client.presignedPutObject.mock.calls[0][2]).toEqual(expires);
-					});
-			});
-		});
-	});
-});
+const url = 'https://example.com'
+
+describe('Service', () => {
+  describe('actions', () => {
+    describe('presignedUrl', () => {
+      it('creates and returns a Presigned URL for creating an Object', () => {
+        jest.clearAllMocks()
+        const mockGetSignedUrl = jest.fn().mockReturnValue(Promise.resolve(url))
+        jest.mock('@aws-sdk/s3-request-presigner', () => ({
+          getSignedUrl: mockGetSignedUrl
+        }))
+
+        let context = {
+          client: {},
+          Promise
+        }
+        const bucketName = 'some-bucket'
+        const objectName = 'some-object'
+        const expires = 1535
+        const expectedParams = {
+          expiresIn: expires
+        }
+        let creating = Service().actions.presignedPutObject.handler.bind(context)({
+          params: {
+            bucketName,
+            objectName,
+            expires
+          }
+        })
+        return Promise.delay(100)
+          .then(() => creating)
+          .then(r => {
+            const command = new PutObjectCommand({
+              Bucket: bucketName,
+              Key: objectName
+            })
+
+            expect(r).toEqual(url)
+            expect(JSON.stringify(mockGetSignedUrl.mock.calls[0][0])).toBe(
+              JSON.stringify(context.client)
+            )
+            expect(JSON.stringify(mockGetSignedUrl.mock.calls[0][1])).toBe(JSON.stringify(command))
+            expect(JSON.stringify(mockGetSignedUrl.mock.calls[0][2])).toBe(
+              JSON.stringify(expectedParams)
+            )
+          })
+      })
+    })
+  })
+})
