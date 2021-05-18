@@ -437,7 +437,6 @@ module.exports = {
       handler(ctx) {
         const { bucketName, objectName, filePath, metaData } = ctx.params
         const fileStream = fs.createReadStream(filePath)
-        // TODO - Handle large uploads as mmultipart if necessary.  Need to check if PutObjectCommand handles them anyway as I have read something that alluded to that but it may be wishful thinking.
 
         return this.client.send(
           new PutObjectCommand({
@@ -600,57 +599,6 @@ module.exports = {
               Objects: deleteKeys
             }
           })
-        )
-      }
-    },
-    /**
-     * Generates a presigned URL for the provided HTTP method, 'httpMethod'. Browsers/Mobile clients may point to this URL to directly download objects even if the bucket is private. This
-     * presigned URL can have an associated expiration time in seconds after which the URL is no longer valid. The default value is 7 days.
-     *
-     * @actions
-     * @param {string} httpMethod - The HTTP-Method (eg. `GET`).
-     * @param {string} bucketName - Name of the bucket.
-     * @param {string} objectName - Name of the object.
-     * @param {number} expires - Expiry time in seconds. Default value is 7 days. (optional)
-     * @param {object} reqParams - request parameters. (optional)
-     * @param {string} requestDate - An ISO date string, the url will be issued at. Default value is now. (optional)
-     * @returns {PromiseLike<String|Error>}
-     */
-    presignedUrl: {
-      params: {
-        httpMethod: { type: 'string' },
-        bucketName: { type: 'string' },
-        objectName: { type: 'string' },
-        expires: { type: 'number', integer: true, optional: true },
-        reqParams: { type: 'object', optional: true },
-        requestDate: { type: 'string', optional: true }
-      },
-      handler(ctx) {
-        //TODO - convert to aws v3
-        return this.Promise.resolve(ctx.params).then(
-          ({ httpMethod, bucketName, objectName, expires, reqParams, requestDate }) => {
-            if (isString(requestDate)) {
-              requestDate = new Date(requestDate)
-            }
-
-            return new this.Promise((resolve, reject) => {
-              this.client.presignedUrl(
-                httpMethod,
-                bucketName,
-                objectName,
-                expires,
-                reqParams,
-                requestDate,
-                (error, url) => {
-                  if (error) {
-                    reject(error)
-                  } else {
-                    resolve(url)
-                  }
-                }
-              )
-            })
-          }
         )
       }
     },
