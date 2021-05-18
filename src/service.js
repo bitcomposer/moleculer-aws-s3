@@ -783,6 +783,8 @@ module.exports = {
     /**
      * Pings the configured S3 backend
      *
+     * @methods
+     *
      * @param {number} timeout - Amount of miliseconds to wait for a ping response
      * @returns {PromiseLike<boolean|S3PingError>}
      */
@@ -794,18 +796,19 @@ module.exports = {
         })
       ])
     },
-
-    async getAllKeys(params, allKeys = []) {
-      const response = await this.client.send(new ListObjectsV2Command(params))
-      response.Contents.forEach(obj => allKeys.push(obj.Key))
-
-      if (response.NextContinuationToken) {
-        params.ContinuationToken = response.NextContinuationToken
-        await getAllKeys(params, allKeys) // RECURSIVE CALL
-      }
-      return allKeys
-    },
-
+    /**
+     * Gets a list of incomplete uploads
+     *
+     * @methods
+     *
+     * @param {string} bucketName - Amount of miliseconds to wait for a ping response
+     * @param {string} prefix - Amount of miliseconds to wait for a ping response
+     * @param {string} keyMarker - Amount of miliseconds to wait for a ping response
+     * @param {string} uploadIdMarker - Amount of miliseconds to wait for a ping response
+     * @param {string} delimiter - Amount of miliseconds to wait for a ping response
+     *
+     * @returns {PromiseLike<Object[]>}
+     */
     async listIncompleteUploadsQuery(bucketName, prefix, keyMarker, uploadIdMarker, delimiter) {
       if (!isValidBucketName(bucketName)) {
         throw new errors.InvalidBucketNameError('Invalid bucket name: ' + bucketName)
@@ -844,30 +847,6 @@ module.exports = {
       return objectList
     },
 
-    async findUploadId(bucketName, objectName) {
-      if (!isValidBucketName(bucketName)) {
-        throw new errors.InvalidBucketNameError('Invalid bucket name: ' + bucketName)
-      }
-      if (!isValidObjectName(objectName)) {
-        throw new errors.InvalidObjectNameError(`Invalid object name: ${objectName}`)
-      }
-      if (!isFunction(cb)) {
-        throw new TypeError('cb should be of type "function"')
-      }
-      var latestUpload
-      const result = await this.listIncompleteUploadsQuery(bucketName, objectName, '', '', '')
-
-      result.forEach(upload => {
-        if (upload.key === objectName) {
-          if (!latestUpload || upload.initiated.getTime() > latestUpload.initiated.getTime()) {
-            latestUpload = upload
-            return
-          }
-        }
-      })
-
-      return latestUpload?.uploadId
-    },
     streamToFile(inputStream, filePath) {
       return new Promise((resolve, reject) => {
         const fileWriteStream = fs.createWriteStream(filePath)
