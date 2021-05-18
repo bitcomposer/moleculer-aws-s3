@@ -78,7 +78,7 @@ module.exports = {
     accessKey: undefined,
     /** @type {String} The SecretKey to use when connecting to s3 */
     secretKey: undefined,
-    /** @type {String?} Set this value to override region cache*/
+    /** @type {String} Set this value to override region cache*/
     region: undefined,
     /** @type {String?} Set this value to provide x-amz-security-token (AWS S3 specific). (Optional)*/
     sessionToken: undefined,
