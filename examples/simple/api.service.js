@@ -10,8 +10,9 @@ const upload = multer({ dest: '/var/tmp/' })
 
 // Create broker
 let broker = new ServiceBroker({
+  name: 'api',
   logger: console,
-  transporter: 'nats://nats:4222'
+  transporter: 'nats://s3.devmonkey.uk:4222'
 })
 
 // Load services

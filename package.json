@@ -43,6 +43,8 @@
     "moleculer-docgen": "^0.2.1",
     "moleculer-repl": "^0.5.2",
     "moleculer-web": "^0.8.2",
+    "multer": "^1.4.2",
+    "node-res": "^5.0.1",
     "nodemon": "^2.0.4",
     "npm-check": "^5.9.2",
     "prettier": "^2.1.1",

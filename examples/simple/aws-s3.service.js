@@ -5,19 +5,26 @@ const AwsS3Service = require('./..')
 
 // Create broker
 let broker = new ServiceBroker({
+  name: 'aws-s3',
   logger: console,
-  transporter: 'nats://nats:4222'
+  transporter: 'nats://s3.devmonkey.uk:4222'
 })
+
+broker.loadService(__dirname + '/file-api.service.js')
 
 // Load services
 broker.createService({
+  name: 'aws-s3',
   mixins: AwsS3Service,
   settings: {
     endPoint: 'http://s3.devmonkey.uk:9000',
+    region: 'us-east-1',
     port: 9000,
     useSSL: false,
     accessKey: 'minioadmin',
-    secretKey: 'minioadmin'
+    secretKey: 'minioadmin',
+    endPointIsString: true,
+    s3ForcePathStyle: true
   }
 })
 
