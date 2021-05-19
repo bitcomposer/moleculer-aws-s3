@@ -1,23 +1,25 @@
 'use strict'
 
 const { ServiceBroker } = require('moleculer')
-const AwsS3Service = require('./..')
+const AwsS3Service = require('../../index')
 
 // Create broker
 let broker = new ServiceBroker({
   name: 'aws-s3',
+  nodeID: 'aws-s3-node',
   logger: console,
-  transporter: 'nats://s3.devmonkey.uk:4222'
+  tracing: true,
+  logLevel: 'trace',
+  transporter: 'TCP', //'nats://localhost:4222',
+  serializer: 'Notepack'
 })
-
-broker.loadService(__dirname + '/file-api.service.js')
 
 // Load services
 broker.createService({
   name: 'aws-s3',
   mixins: AwsS3Service,
   settings: {
-    endPoint: 'http://s3.devmonkey.uk:9000',
+    endPoint: 'http://s3.devmonkey.uk',
     region: 'us-east-1',
     port: 9000,
     useSSL: false,

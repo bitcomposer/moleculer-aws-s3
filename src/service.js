@@ -10,9 +10,8 @@ const {
   ListObjectsCommand,
   ListObjectsV2Command,
   ListBucketsCommand,
-  HeadBucketCommand,
   DeleteBucketCommand,
-  AbortMultipartUploadRequest,
+  ListMultipartUploadsCommand,
   GetObjectCommand,
   CopyObjectCommand,
   HeadObjectCommand,
@@ -21,37 +20,7 @@ const {
 } = require('@aws-sdk/client-s3')
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 const fs = require('fs')
-const {
-  extractMetadata,
-  prependXAMZMeta,
-  isValidPrefix,
-  isValidEndpoint,
-  isValidBucketName,
-  isValidPort,
-  isValidObjectName,
-  isAmazonEndpoint,
-  getScope,
-  uriEscape,
-  uriResourceEscape,
-  isBoolean,
-  isFunction,
-  isNumber,
-  isString,
-  isObject,
-  isArray,
-  isValidDate,
-  pipesetup,
-  readableStream,
-  isReadableStream,
-  isVirtualHostStyle,
-  insertContentType,
-  makeDateLong,
-  promisify,
-  getVersionId,
-  sanitizeETag,
-  RETENTION_MODES,
-  RETENTION_VALIDITY_UNITS
-} = require('./utils/helpers.js')
+const { isValidBucketName, isFunction, isString } = require('./utils/helpers.js')
 const _ = require('lodash')
 const { S3PingError, S3InitializationError } = require('./errors')
 
@@ -110,7 +79,7 @@ module.exports = {
         region: { type: 'string', optional: true }
       },
       async handler(ctx) {
-        return this.client.send(
+        const ret = await this.client.send(
           new CreateBucketCommand({
             Bucket: ctx.params.bucketName,
             CreateBucketConfiguration: {
@@ -118,6 +87,7 @@ module.exports = {
             }
           })
         )
+        return ret?.Location
       }
     },
     /**
@@ -131,7 +101,7 @@ module.exports = {
       handler() {
         return this.client
           .send(new ListBucketsCommand({}))
-          .then(buckets => (_.isUndefined(buckets) ? [] : buckets))
+          .then(buckets => (_.isUndefined(buckets?.Buckets) ? [] : buckets?.Buckets))
       }
     },
     /**
@@ -147,19 +117,10 @@ module.exports = {
         bucketName: { type: 'string' }
       },
       async handler(ctx) {
-        try {
-          await this.client.send(
-            new HeadBucketCommand({
-              Bucket: ctx.params.bucketName
-            })
-          )
-          return true
-        } catch (err) {
-          if (err.statusCode >= 400 && err.statusCode < 500) {
-            return false
-          }
-          throw err
-        }
+        // HeadBucketCommand always return 200 so it's useless (for minio?).  Search the list of buckets should work.
+        const res = await this.client.send(new ListBucketsCommand({}))
+
+        return !!_.find(res?.Buckets, { Name: ctx.params.bucketName })
       }
     },
     /**
@@ -175,11 +136,19 @@ module.exports = {
         bucketName: { type: 'string' }
       },
       async handler(ctx) {
-        return this.client.send(
-          new DeleteBucketCommand({
-            Bucket: ctx.params.bucketName
-          })
-        )
+        try {
+          await this.client.send(
+            new DeleteBucketCommand({
+              Bucket: ctx.params.bucketName
+            })
+          )
+          return true
+        } catch (err) {
+          if (err?.$metadata?.httpStatusCode >= 400 && err?.$metadata?.httpStatusCode < 500) {
+            return false
+          }
+          throw err
+        }
       }
     },
     /**
@@ -278,10 +247,11 @@ module.exports = {
         const keyMarker = ''
         const uploadIdMarker = ''
         const delimiter = recursive ? '' : '/'
+        const thePrefix = prefix ?? ''
 
         return this.listIncompleteUploadsQuery(
           bucketName,
-          prefix,
+          thePrefix,
           keyMarker,
           uploadIdMarker,
           delimiter
@@ -303,12 +273,13 @@ module.exports = {
         objectName: { type: 'string' }
       },
       async handler(ctx) {
-        return this.client.send(
+        const ret = await this.client.send(
           new GetObjectCommand({
             Bucket: ctx.params.bucketName,
             Key: ctx.params.objectName
           })
         )
+        return ret?.Body
       }
     },
     /**
@@ -329,7 +300,7 @@ module.exports = {
         offset: { type: 'number' },
         length: { type: 'number', optional: true }
       },
-      handler(ctx) {
+      async handler(ctx) {
         const { offset, length, bucketName, objectName } = ctx.params
         let range = ''
         let offsetWrk = offset
@@ -347,13 +318,14 @@ module.exports = {
             range += `${+lengthWrk + offsetWrk - 1}`
           }
         }
-        return this.client.send(
+        const ret = await this.client.send(
           new GetObjectCommand({
             Bucket: bucketName,
             Key: objectName,
             Range: range
           })
         )
+        return ret?.Body
       }
     },
     /**
@@ -399,21 +371,17 @@ module.exports = {
      * @returns {PromiseLike<undefined|Error>}
      */
     putObject: {
-      handler(ctx) {
-        return this.Promise.resolve({
-          stream: ctx.params,
-          meta: ctx.meta
-        }).then(({ stream, meta }) =>
-          this.client.send(
-            new PutObjectCommand({
-              Bucket: meta.bucketName,
-              Key: meta.objectName,
-              Body: stream,
-              Metadata: meta.metaData,
-              ContentLength: meta.size
-            })
-          )
+      async handler(ctx) {
+        const ret = await this.client.send(
+          new PutObjectCommand({
+            Bucket: ctx.meta?.bucketName,
+            Key: ctx.meta?.objectName,
+            Body: ctx.params,
+            Metadata: ctx.meta?.metaData,
+            ContentLength: ctx.meta?.size
+          })
         )
+        return ret
       }
     },
     /**
@@ -434,11 +402,11 @@ module.exports = {
         filePath: { type: 'string' },
         metaData: { type: 'object', optional: true }
       },
-      handler(ctx) {
+      async handler(ctx) {
         const { bucketName, objectName, filePath, metaData } = ctx.params
         const fileStream = fs.createReadStream(filePath)
 
-        return this.client.send(
+        const ret = await this.client.send(
           new PutObjectCommand({
             Bucket: bucketName,
             Key: objectName,
@@ -446,6 +414,7 @@ module.exports = {
             Metadata: metaData
           })
         )
+        return ret
       }
     },
     /**
@@ -506,13 +475,14 @@ module.exports = {
         bucketName: { type: 'string' },
         objectName: { type: 'string' }
       },
-      handler(ctx) {
-        return this.client.send(
+      async handler(ctx) {
+        const ret = await this.client.send(
           new HeadObjectCommand({
             Bucket: ctx.params.bucketName,
             Key: ctx.params.objectName
           })
         )
+        return ret
       }
     },
     /**
@@ -841,7 +811,7 @@ module.exports = {
         params.KeyMarker = res.NextKeyMarker
         params.UploadIdMarker = res.NextUploadIdMarker
         truncated = res.IsTruncated
-        objectList = objectList.concat(res.Uploads)
+        objectList = objectList.concat(res?.Uploads ?? [])
       } while (truncated)
 
       return objectList

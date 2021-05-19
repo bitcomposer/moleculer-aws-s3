@@ -11,141 +11,73 @@ const upload = multer({ dest: '/var/tmp/' })
 // Create broker
 let broker = new ServiceBroker({
   name: 'api',
+  nodeID: 'api-node',
   logger: console,
-  transporter: 'nats://s3.devmonkey.uk:4222'
+  logLevel: 'trace',
+  tracing: true,
+  transporter: 'TCP', //'nats://localhost:4222',
+  serializer: 'Notepack'
 })
 
 // Load services
 broker.createService({
   mixins: ApiGatewayService,
   settings: {
+    path: '/',
+    port: 5000,
     routes: [
       {
         path: '/upload',
-        use: [upload.single('file')],
+        authentication: true,
+        mappingPolicy: 'restrict',
+        aliases: {
+          'POST /putObject': 'stream:aws-s3.putObject'
+        },
         bodyParsers: {
           json: false,
           urlencoded: false
-        },
-        aliases: {
-          'POST /'(req, res) {
-            let stream = fs.createReadStream(req.file.path)
-            return this.broker
-              .call('aws-s3.putObject', stream, { meta: req.body })
-              .then(result => {
-                this.logger.info('Object saved', result)
-                nodeRes.send(req, res, result)
-              })
-              .catch(err => {
-                this.logger.error('Object save error', err)
-                this.sendError(req, res, err)
-              })
-          }
         }
       },
       {
-        path: '/putfrompath',
-        bodyParsers: {
-          json: true
-        },
-        aliases: {
-          'POST /'(req, res) {
-            return this.broker
-              .call('aws-s3.fPutObject', req.body)
-              .then(result => {
-                this.logger.info('Object saved', result)
-                nodeRes.send(req, res, result)
-              })
-              .catch(err => {
-                this.logger.error('Object save error', err)
-                this.sendError(req, res, err)
-              })
-          }
-        }
-      },
-      {
-        path: '/presignedurl',
-        bodyParsers: {
-          json: true
-        },
-        aliases: {
-          'POST /'(req, res) {
-            const options = Object.assign({}, req.body, { requestDate: new Date() })
-            return this.broker
-              .call('aws-s3.presignedUrl', options)
-              .then(result => {
-                nodeRes.send(req, res, result)
-              })
-              .catch(err => {
-                this.sendError(req, res, err)
-              })
-          }
-        }
-      },
-      {
-        path: '/presignedgetobject',
-        bodyParsers: {
-          json: true
-        },
-        aliases: {
-          'POST /'(req, res) {
-            const options = Object.assign({}, req.body, { requestDate: new Date() })
-            return this.broker
-              .call('aws-s3.presignedGetObject', options)
-              .then(result => {
-                nodeRes.send(req, res, result)
-              })
-              .catch(err => {
-                this.sendError(req, res, err)
-              })
-          }
-        }
-      },
-      {
-        path: '/presignedputobject',
-        bodyParsers: {
-          json: true
-        },
-        aliases: {
-          'POST /'(req, res) {
-            const options = Object.assign({}, req.body, { requestDate: new Date() })
-            return this.broker
-              .call('aws-s3.presignedPutObject', options)
-              .then(result => {
-                nodeRes.send(req, res, result)
-              })
-              .catch(err => {
-                this.sendError(req, res, err)
-              })
-          }
-        }
-      },
-      {
-        path: '/presignedpostpolicy',
-        bodyParsers: {
-          json: true
-        },
-        aliases: {
-          'POST /'(req, res) {
-            return this.broker
-              .call('aws-s3.presignedPostPolicy', req.body)
-              .then(result => {
-                nodeRes.send(req, res, result)
-              })
-              .catch(err => {
-                this.sendError(req, res, err)
-              })
-          }
-        }
-      },
-      {
-        path: '/',
+        path: '/api',
         whitelist: [
-          // Access any actions in 'minio' service
+          // Access any actions in 'aws-s3' service
           'aws-s3.*'
-        ]
+        ],
+        bodyParsers: {
+          json: true
+        }
       }
     ]
+  },
+  methods: {
+    /**
+     * Authenticate a route
+     *
+     * @param ctx The context
+     * @param _ The router settings
+     * @param req The request that is being authenticated
+     */
+    authenticate: async function (ctx, _, req) {
+      const route = this.getRouteFromReq(req)
+
+      ctx.meta.rawHeaders = req.headers
+
+      ctx.meta.bucketName = req.headers?.bucketname
+      ctx.meta.objectName = req.headers?.objectname
+
+      return null
+    },
+    /**
+     * Get the route from the passed request
+     *
+     * @param req The request to get the route from
+     *
+     * @returns The route that is being requested
+     */
+    getRouteFromReq: function (req) {
+      return req.parsedUrl.replace(req.baseUrl, '')
+    }
   }
 })
 
@@ -156,4 +88,7 @@ process.once('SIGUSR2', function () {
 })
 
 // Start server
-broker.start().then(() => broker.repl())
+broker
+  .start()
+  .then(() => broker.repl())
+  .catch(err => broker.logger.error(err))
