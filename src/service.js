@@ -445,9 +445,9 @@ module.exports = {
         },
         metaData: { type: 'object', optional: true }
       },
-      handler(ctx) {
+      async handler(ctx) {
         const { bucketName, objectName, sourceObject, conditions, metaData } = ctx.params
-        return this.client.send(
+        const ret = await this.client.send(
           new CopyObjectCommand({
             Bucket: bucketName,
             Key: objectName,
@@ -459,6 +459,7 @@ module.exports = {
             CopySourceIfUnmodifiedSince: conditions?.unmodified
           })
         )
+        return ret?.CopyObjectResult
       }
     },
     /**
@@ -475,14 +476,13 @@ module.exports = {
         bucketName: { type: 'string' },
         objectName: { type: 'string' }
       },
-      async handler(ctx) {
-        const ret = await this.client.send(
+      handler(ctx) {
+        return this.client.send(
           new HeadObjectCommand({
             Bucket: ctx.params.bucketName,
             Key: ctx.params.objectName
           })
         )
-        return ret
       }
     },
     /**
@@ -522,15 +522,19 @@ module.exports = {
         bucketName: { type: 'string' },
         objectNames: { type: 'array', items: 'string' }
       },
-      handler(ctx) {
-        return this.client.send(
+      async handler(ctx) {
+        const objectNames = _.map(ctx.params.objectNames, obj => {
+          return { Key: obj }
+        })
+        const ret = await this.client.send(
           new DeleteObjectsCommand({
             Bucket: ctx.params.bucketName,
             Delete: {
-              Objects: ctx.params.objectNames
+              Objects: objectNames
             }
           })
         )
+        return ret?.Deleted
       }
     },
     /**
@@ -561,12 +565,11 @@ module.exports = {
           uploadIdMarker,
           delimiter
         )
-        const deleteKeys = _.map(uploads, 'Key')
         return this.client.send(
           new DeleteObjectsCommand({
             Bucket: ctx.params.bucketName,
             Delete: {
-              Objects: deleteKeys
+              Objects: uploads
             }
           })
         )

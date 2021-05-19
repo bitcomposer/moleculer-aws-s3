@@ -26,7 +26,7 @@ describe('Service', () => {
             const command = new DeleteObjectsCommand({
               Bucket: bucketName,
               Delete: {
-                Objects: [objectName]
+                Objects: [{ Key: objectName, Value: objectName }]
               }
             })
             expect(JSON.stringify(context.client.send.mock.calls[0][0])).toEqual(

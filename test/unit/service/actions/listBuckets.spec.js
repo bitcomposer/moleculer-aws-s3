@@ -20,7 +20,7 @@ describe('Service', () => {
       it('uses an empty string as the default region', () => {
         let context = {
           client: {
-            send: jest.fn().mockReturnValue(Promise.resolve(['foo']))
+            send: jest.fn().mockReturnValue(Promise.resolve({ Buckets: ['foo'] }))
           },
           Promise
         }

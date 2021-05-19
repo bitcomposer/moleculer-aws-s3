@@ -1,6 +1,7 @@
 const Service = () => require('service')
 const Promise = require('bluebird')
 const { DeleteObjectsCommand } = require('@aws-sdk/client-s3')
+const _ = require('lodash')
 
 describe('Service', () => {
   describe('actions', () => {
@@ -17,10 +18,13 @@ describe('Service', () => {
         return Service()
           .actions.removeObjects.handler.bind(context)({ params: { bucketName, objectNames } })
           .then(r => {
+            const mappedObjectNames = _.map(objectNames, obj => {
+              return { Key: obj }
+            })
             const command = new DeleteObjectsCommand({
               Bucket: bucketName,
               Delete: {
-                Objects: objectNames
+                Objects: mappedObjectNames
               }
             })
             expect(JSON.stringify(context.client.send.mock.calls[0][0])).toEqual(

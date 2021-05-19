@@ -65,6 +65,7 @@ broker.createService({
 
       ctx.meta.bucketName = req.headers?.bucketname
       ctx.meta.objectName = req.headers?.objectname
+      ctx.meta.size = req.headers?.size
 
       return null
     },
