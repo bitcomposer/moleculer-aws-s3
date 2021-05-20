@@ -375,21 +375,6 @@ Generates a presigned URL for HTTP PUT operations. Browsers/Mobile clients may p
 
 
 
-## `presignedPostPolicy` 
-
-Allows setting policy conditions to a presigned URL for POST operations. Policies such as bucket name to receive object uploads, key name prefixes, expiry policy may be set.
-
-### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `policy` | `object` | **required** | Policy object created by s3Client.newPostPolicy() |
-
-### Results
-**Type:** `PromiseLike.<({postURL: {string}, formData: {object}}|Error)>`
-
-
-
-
 <!-- AUTO-CONTENT-END:ACTIONS -->
 
 <!-- AUTO-CONTENT-TEMPLATE:ACTIONS
