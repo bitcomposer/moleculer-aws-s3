@@ -23,7 +23,7 @@ describe('Service', () => {
 
         const bucketName = 'some-bucket'
         const objectName = 'some-object'
-        const filePath = 'c:/temp/packages.txt'
+        const filePath = './packages.txt'
         return Service()
           .actions.fGetObject.handler.bind(context)({
             params: { bucketName, objectName, filePath }

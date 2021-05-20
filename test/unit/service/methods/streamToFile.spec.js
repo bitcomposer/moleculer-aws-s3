@@ -10,7 +10,7 @@ describe('Service', () => {
   describe('methods', () => {
     describe('streamToFile', () => {
       it('rejects with an error if a stream error occurs', async () => {
-        const filePath = 'c:/temp/packages.txt'
+        const filePath = './packages.txt'
         const mockReadStream = new PassThrough()
         const mockWriteable = new PassThrough()
         const mockError = new Error('You crossed the streams!')
@@ -30,8 +30,7 @@ describe('Service', () => {
         // Arrange
         const mockReadable = new PassThrough()
         const mockWriteable = new PassThrough()
-        const mockFilePath = 'c:/temp/packages.txt'
-        const mockError = new Error('You crossed the streams!')
+        const mockFilePath = './packages.txt'
         fs.createWriteStream.mockReturnValueOnce(mockWriteable)
 
         // Act

@@ -1,12 +1,18 @@
 const Service = () => require('service')
 const Promise = require('bluebird')
 const { PutObjectCommand } = require('@aws-sdk/client-s3')
+const { PassThrough } = require('stream')
+
+jest.mock('fs')
+
 const fs = require('fs')
 
 describe('Service', () => {
   describe('actions', () => {
     describe('fPutObject', () => {
       it('accepts a bucket name, an object name and a file path', () => {
+        const mockWriteable = new PassThrough()
+        fs.createWriteStream.mockReturnValueOnce(mockWriteable)
         let context = {
           client: {
             send: jest.fn().mockReturnValue(Promise.resolve())
@@ -15,7 +21,7 @@ describe('Service', () => {
         }
         const bucketName = 'some-bucket'
         const objectName = 'some-object'
-        const filePath = 'c:/temp/packages.PNG'
+        const filePath = './packages.PNG'
         const metaData = { foo: 'bar' }
         return Service()
           .actions.fPutObject.handler.bind(context)({

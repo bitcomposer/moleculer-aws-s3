@@ -14,7 +14,7 @@ describe('Service', () => {
         }
         const bucketName = 'some-bucket'
         const objectName = 'some-object'
-        const sourceObject = 'c:/temp/packages.PNG'
+        const sourceObject = './packages.PNG'
         const metaData = {}
         const conditions = {
           modified: 'Mon, 01 Jan 2018 00:00:00 GMT',
@@ -52,7 +52,7 @@ describe('Service', () => {
         }
         const bucketName = 'some-bucket'
         const objectName = 'some-object'
-        const sourceObject = 'c:/temp/packages.PNG'
+        const sourceObject = './packages.PNG'
         const conditions = {}
         const metaData = {}
         return Service()
