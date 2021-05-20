@@ -1,6 +1,6 @@
 ![Moleculer logo](http://moleculer.services/images/banner.png)
 
-[![Build Status](https://travis-ci.org/bitcomposer/moleculer-aws-s3.svg?branch=master)](https://travis-ci.org/bitcomposer/moleculer-aws-s3)
+[![Build Status](https://travis-ci.com/bitcomposer/moleculer-aws-s3.svg?branch=master)](https://travis-ci.org/bitcomposer/moleculer-aws-s3)
 [![Coverage Status](https://coveralls.io/repos/github/bitcomposer/moleculer-aws-s3/badge.svg?branch=master)](https://coveralls.io/github/bitcomposer/moleculer-aws-s3?branch=master)
 [![Known Vulnerabilities](https://snyk.io/test/github/bitcomposer/moleculer-aws-s3/badge.svg)](https://snyk.io/test/github/bitcomposer/moleculer-aws-s3)
 
@@ -26,18 +26,20 @@ npm install moleculer-aws-s3 --save
 
 ## Settings
 
-<!-- AUTO-CONTENT-START:SETTINGS -->| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `endPoint` | `String` | **required** | The Hostname s3 is running on and available at. Hostname or IP-Address |
-| `port` | `Number` | **required** | TCP/IP port number s3 is listening on. Default value set to 80 for HTTP and 443 for HTTPs. |
-| `useSSL` | `Boolean` | `null` | If set to true, https is used instead of http. Default is true. |
-| `accessKey` | `String` | **required** | The AccessKey to use when connecting to s3 |
-| `secretKey` | `String` | **required** | The SecretKey to use when connecting to s3 |
-| `region` | `String` | **required** | Set this value to override region cache |
-| `sessionToken` | `String` | `null` | Set this value to provide x-amz-security-token (AWS S3 specific). (Optional) |
-| `s3HealthCheckInterval` | `Number` | `null` | This service will perform a periodic healthcheck of s3. Use this setting to configure the inverval in which the healthcheck is performed. Set to `0` to turn healthcheks of |
-| `s3ForcePathStyle` | `Boolean` | `null` | If set to true, path style is used instead of virtual host style. Default is false. |
-| `endPointIsString` | `Boolean` | `null` | If set to true, the endpoint is set as is. Default is false. |
+<!-- AUTO-CONTENT-START:SETTINGS -->
+
+| Property                | Type      | Default      | Description                                                                                                                                                                 |
+| ----------------------- | --------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `endPoint`              | `String`  | **required** | The Hostname s3 is running on and available at. Hostname or IP-Address                                                                                                      |
+| `port`                  | `Number`  | **required** | TCP/IP port number s3 is listening on. Default value set to 80 for HTTP and 443 for HTTPs.                                                                                  |
+| `useSSL`                | `Boolean` | `null`       | If set to true, https is used instead of http. Default is true.                                                                                                             |
+| `accessKey`             | `String`  | **required** | The AccessKey to use when connecting to s3                                                                                                                                  |
+| `secretKey`             | `String`  | **required** | The SecretKey to use when connecting to s3                                                                                                                                  |
+| `region`                | `String`  | **required** | Set this value to override region cache                                                                                                                                     |
+| `sessionToken`          | `String`  | `null`       | Set this value to provide x-amz-security-token (AWS S3 specific). (Optional)                                                                                                |
+| `s3HealthCheckInterval` | `Number`  | `null`       | This service will perform a periodic healthcheck of s3. Use this setting to configure the inverval in which the healthcheck is performed. Set to `0` to turn healthcheks of |
+| `s3ForcePathStyle`      | `Boolean` | `null`       | If set to true, path style is used instead of virtual host style. Default is false.                                                                                         |
+| `endPointIsString`      | `Boolean` | `null`       | If set to true, the endpoint is set as is. Default is false.                                                                                                                |
 
 <!-- AUTO-CONTENT-END:SETTINGS -->
 
@@ -55,325 +57,311 @@ npm install moleculer-aws-s3 --save
 
 ## Actions
 
-<!-- AUTO-CONTENT-START:ACTIONS -->## `makeBucket` 
+<!-- AUTO-CONTENT-START:ACTIONS -->
+
+## `makeBucket`
 
 Creates a new Bucket
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | The name of the bucket |
-| `region` | `string` | **required** | The region to create the bucket in. Defaults to "us-east-1" |
+
+| Property     | Type     | Default      | Description                                                 |
+| ------------ | -------- | ------------ | ----------------------------------------------------------- |
+| `bucketName` | `string` | **required** | The name of the bucket                                      |
+| `region`     | `string` | **required** | The region to create the bucket in. Defaults to "us-east-1" |
 
 ### Results
+
 **Type:** `PromiseLike.<(undefined|Error)>`
 
-
-
-
-## `listBuckets` 
+## `listBuckets`
 
 Lists all buckets.
 
 ### Parameters
+
 | Property | Type | Default | Description |
 | -------- | ---- | ------- | ----------- |
-*No input parameters.*
+
+_No input parameters._
 
 ### Results
+
 **Type:** `PromiseLike.<(Array.<Bucket>|Error)>`
 
-
-
-
-## `bucketExists` 
+## `bucketExists`
 
 Checks if a bucket exists.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
+
+| Property     | Type     | Default      | Description        |
+| ------------ | -------- | ------------ | ------------------ |
 | `bucketName` | `string` | **required** | Name of the bucket |
 
 ### Results
+
 **Type:** `PromiseLike.<(boolean|Error)>`
 
-
-
-
-## `removeBucket` 
+## `removeBucket`
 
 Removes a bucket.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
+
+| Property     | Type     | Default      | Description        |
+| ------------ | -------- | ------------ | ------------------ |
 | `bucketName` | `string` | **required** | Name of the bucket |
 
 ### Results
+
 **Type:** `PromiseLike.<(boolean|Error)>`
 
-
-
-
-## `listObjects` 
+## `listObjects`
 
 Lists all objects in a bucket.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket |
-| `prefix` | `string` | **required** | The prefix of the objects that should be listed (optional, default ''). |
-| `recursive` | `boolean` | **required** | `true` indicates recursive style listing and false indicates directory style listing delimited by '/'. (optional, default `false`). |
+
+| Property     | Type      | Default      | Description                                                                                                                         |
+| ------------ | --------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `bucketName` | `string`  | **required** | Name of the bucket                                                                                                                  |
+| `prefix`     | `string`  | **required** | The prefix of the objects that should be listed (optional, default '').                                                             |
+| `recursive`  | `boolean` | **required** | `true` indicates recursive style listing and false indicates directory style listing delimited by '/'. (optional, default `false`). |
 
 ### Results
+
 **Type:** `PromiseLike.<(Array.<Object>|Error)>`
 
-
-
-
-## `listObjectsV2` 
+## `listObjectsV2`
 
 Lists all objects in a bucket using S3 listing objects V2 API
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket |
-| `prefix` | `string` | **required** | The prefix of the objects that should be listed (optional, default ''). |
-| `recursive` | `boolean` | **required** | `true` indicates recursive style listing and false indicates directory style listing delimited by '/'. (optional, default `false`). |
-| `startAfter` | `string` | **required** | Specifies the object name to start after when listing objects in a bucket. (optional, default ''). |
+
+| Property     | Type      | Default      | Description                                                                                                                         |
+| ------------ | --------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `bucketName` | `string`  | **required** | Name of the bucket                                                                                                                  |
+| `prefix`     | `string`  | **required** | The prefix of the objects that should be listed (optional, default '').                                                             |
+| `recursive`  | `boolean` | **required** | `true` indicates recursive style listing and false indicates directory style listing delimited by '/'. (optional, default `false`). |
+| `startAfter` | `string`  | **required** | Specifies the object name to start after when listing objects in a bucket. (optional, default '').                                  |
 
 ### Results
+
 **Type:** `PromiseLike.<(Array.<Object>|Error)>`
 
-
-
-
-## `listIncompleteUploads` 
+## `listIncompleteUploads`
 
 Lists partially uploaded objects in a bucket.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket |
-| `prefix` | `string` | **required** | The prefix of the objects that should be listed (optional, default ''). |
-| `recursive` | `boolean` | **required** | `true` indicates recursive style listing and false indicates directory style listing delimited by '/'. (optional, default `false`). |
+
+| Property     | Type      | Default      | Description                                                                                                                         |
+| ------------ | --------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `bucketName` | `string`  | **required** | Name of the bucket                                                                                                                  |
+| `prefix`     | `string`  | **required** | The prefix of the objects that should be listed (optional, default '').                                                             |
+| `recursive`  | `boolean` | **required** | `true` indicates recursive style listing and false indicates directory style listing delimited by '/'. (optional, default `false`). |
 
 ### Results
+
 **Type:** `PromiseLike.<(Array.<Object>|Error)>`
 
-
-
-
-## `getObject` 
+## `getObject`
 
 Downloads an object as a stream.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket |
+
+| Property     | Type     | Default      | Description         |
+| ------------ | -------- | ------------ | ------------------- |
+| `bucketName` | `string` | **required** | Name of the bucket  |
 | `objectName` | `string` | **required** | Name of the object. |
 
 ### Results
+
 **Type:** `PromiseLike.<(ReadableStream|Error)>`
 
-
-
-
-## `getPartialObject` 
+## `getPartialObject`
 
 Downloads the specified range bytes of an object as a stream.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket. |
-| `objectName` | `string` | **required** | Name of the object. |
-| `offset` | `number` | **required** | `offset` of the object from where the stream will start. |
-| `length` | `number` | **required** | `length` of the object that will be read in the stream (optional, if not specified we read the rest of the file from the offset). |
+
+| Property     | Type     | Default      | Description                                                                                                                       |
+| ------------ | -------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `bucketName` | `string` | **required** | Name of the bucket.                                                                                                               |
+| `objectName` | `string` | **required** | Name of the object.                                                                                                               |
+| `offset`     | `number` | **required** | `offset` of the object from where the stream will start.                                                                          |
+| `length`     | `number` | **required** | `length` of the object that will be read in the stream (optional, if not specified we read the rest of the file from the offset). |
 
 ### Results
+
 **Type:** `PromiseLike.<(ReadableStream|Error)>`
 
-
-
-
-## `fGetObject` 
+## `fGetObject`
 
 Downloads and saves the object as a file in the local filesystem.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket. |
-| `objectName` | `string` | **required** | Name of the object. |
-| `filePath` | `string` | **required** | Path on the local filesystem to which the object data will be written. |
+
+| Property     | Type     | Default      | Description                                                            |
+| ------------ | -------- | ------------ | ---------------------------------------------------------------------- |
+| `bucketName` | `string` | **required** | Name of the bucket.                                                    |
+| `objectName` | `string` | **required** | Name of the object.                                                    |
+| `filePath`   | `string` | **required** | Path on the local filesystem to which the object data will be written. |
 
 ### Results
+
 **Type:** `PromiseLike.<(undefined|Error)>`
 
-
-
-
-## `putObject` 
+## `putObject`
 
 Uploads an object from a stream/Buffer.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `params` | `ReadableStream` | **required** | Readable stream. |
-| `bucketName` | `string` | **required** | Name of the bucket. |
-| `objectName` | `string` | **required** | Name of the object. |
-| `size` | `number` | **required** | Size of the object (optional). |
-| `metaData` | `object` | **required** | metaData of the object (optional). |
+
+| Property     | Type             | Default      | Description                        |
+| ------------ | ---------------- | ------------ | ---------------------------------- |
+| `params`     | `ReadableStream` | **required** | Readable stream.                   |
+| `bucketName` | `string`         | **required** | Name of the bucket.                |
+| `objectName` | `string`         | **required** | Name of the object.                |
+| `size`       | `number`         | **required** | Size of the object (optional).     |
+| `metaData`   | `object`         | **required** | metaData of the object (optional). |
 
 ### Results
+
 **Type:** `PromiseLike.<(undefined|Error)>`
 
-
-
-
-## `fPutObject` 
+## `fPutObject`
 
 Uploads contents from a file to objectName.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket. |
-| `objectName` | `string` | **required** | Name of the object. |
-| `filePath` | `string` | **required** | Path of the file to be uploaded. |
-| `metaData` | `object` | **required** | metaData of the object (optional). |
+
+| Property     | Type     | Default      | Description                        |
+| ------------ | -------- | ------------ | ---------------------------------- |
+| `bucketName` | `string` | **required** | Name of the bucket.                |
+| `objectName` | `string` | **required** | Name of the object.                |
+| `filePath`   | `string` | **required** | Path of the file to be uploaded.   |
+| `metaData`   | `object` | **required** | metaData of the object (optional). |
 
 ### Results
+
 **Type:** `PromiseLike.<(undefined|Error)>`
 
-
-
-
-## `copyObject` 
+## `copyObject`
 
 Copy a source object into a new object in the specified bucket.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket. |
-| `objectName` | `string` | **required** | Name of the object. |
-| `sourceObject` | `string` | **required** | Path of the file to be copied. |
-| `conditions` | `object` | **required** | Conditions to be satisfied before allowing object copy. |
-| `metaData` | `object` | **required** | metaData of the object (optional). |
+
+| Property       | Type     | Default      | Description                                             |
+| -------------- | -------- | ------------ | ------------------------------------------------------- |
+| `bucketName`   | `string` | **required** | Name of the bucket.                                     |
+| `objectName`   | `string` | **required** | Name of the object.                                     |
+| `sourceObject` | `string` | **required** | Path of the file to be copied.                          |
+| `conditions`   | `object` | **required** | Conditions to be satisfied before allowing object copy. |
+| `metaData`     | `object` | **required** | metaData of the object (optional).                      |
 
 ### Results
+
 **Type:** `PromiseLike.<({etag: {string}, lastModified: {string}}|Error)>`
 
-
-
-
-## `statObject` 
+## `statObject`
 
 Gets metadata of an object.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
+
+| Property     | Type     | Default      | Description         |
+| ------------ | -------- | ------------ | ------------------- |
 | `bucketName` | `string` | **required** | Name of the bucket. |
 | `objectName` | `string` | **required** | Name of the object. |
 
 ### Results
+
 **Type:** `PromiseLike.<({size: {number}, metaData: {object}, lastModified: {string}, etag: {string}}|Error)>`
 
-
-
-
-## `removeObject` 
+## `removeObject`
 
 Removes an Object
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
+
+| Property     | Type     | Default      | Description         |
+| ------------ | -------- | ------------ | ------------------- |
 | `bucketName` | `string` | **required** | Name of the bucket. |
 | `objectName` | `string` | **required** | Name of the object. |
 
 ### Results
+
 **Type:** `PromiseLike.<(undefined|Error)>`
 
-
-
-
-## `removeObjects` 
+## `removeObjects`
 
 Removes a list of Objects
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket. |
+
+| Property      | Type             | Default      | Description           |
+| ------------- | ---------------- | ------------ | --------------------- |
+| `bucketName`  | `string`         | **required** | Name of the bucket.   |
 | `objectNames` | `Array.<string>` | **required** | Names of the objects. |
 
 ### Results
+
 **Type:** `PromiseLike.<(undefined|Error)>`
 
-
-
-
-## `removeIncompleteUpload` 
+## `removeIncompleteUpload`
 
 Removes a partially uploaded object.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
+
+| Property     | Type     | Default      | Description         |
+| ------------ | -------- | ------------ | ------------------- |
 | `bucketName` | `string` | **required** | Name of the bucket. |
 | `objectName` | `string` | **required** | Name of the object. |
 
 ### Results
+
 **Type:** `PromiseLike.<(undefined|Error)>`
 
+## `presignedGetObject`
 
-
-
-## `presignedGetObject` 
-
-Generates a presigned URL for HTTP GET operations. Browsers/Mobile clients may point to this URL to directly download objects even if the bucket is private. This presigned URL can have anassociated expiration time in seconds after which the URL is no longer valid. The default value is 7 days.
+Generates a presigned URL for HTTP GET operations. Browsers/Mobile clients may point to this URL to directly download objects even if the bucket is private. This presigned URL can have an
+associated expiration time in seconds after which the URL is no longer valid. The default value is 7 days.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket. |
-| `objectName` | `string` | **required** | Name of the object. |
-| `expires` | `number` | **required** | Expiry time in seconds. Default value is 7 days. (optional) |
-| `reqParams` | `object` | **required** | request parameters. (optional) |
+
+| Property      | Type     | Default      | Description                                                                     |
+| ------------- | -------- | ------------ | ------------------------------------------------------------------------------- |
+| `bucketName`  | `string` | **required** | Name of the bucket.                                                             |
+| `objectName`  | `string` | **required** | Name of the object.                                                             |
+| `expires`     | `number` | **required** | Expiry time in seconds. Default value is 7 days. (optional)                     |
+| `reqParams`   | `object` | **required** | request parameters. (optional)                                                  |
 | `requestDate` | `string` | **required** | An ISO date string, the url will be issued at. Default value is now. (optional) |
 
 ### Results
+
 **Type:** `PromiseLike.<(String|Error)>`
 
+## `presignedPutObject`
 
-
-
-## `presignedPutObject` 
-
-Generates a presigned URL for HTTP PUT operations. Browsers/Mobile clients may point to this URL to upload objects directly to a bucket even if it is private. This presigned URL can havean associated expiration time in seconds after which the URL is no longer valid. The default value is 7 days.
+Generates a presigned URL for HTTP PUT operations. Browsers/Mobile clients may point to this URL to upload objects directly to a bucket even if it is private. This presigned URL can have
+an associated expiration time in seconds after which the URL is no longer valid. The default value is 7 days.
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Name of the bucket. |
-| `objectName` | `string` | **required** | Name of the object. |
-| `expires` | `number` | **required** | Expiry time in seconds. Default value is 7 days. (optional) |
+
+| Property     | Type     | Default      | Description                                                 |
+| ------------ | -------- | ------------ | ----------------------------------------------------------- |
+| `bucketName` | `string` | **required** | Name of the bucket.                                         |
+| `objectName` | `string` | **required** | Name of the object.                                         |
+| `expires`    | `number` | **required** | Expiry time in seconds. Default value is 7 days. (optional) |
 
 ### Results
+
 **Type:** `PromiseLike.<(String|Error)>`
-
-
-
 
 <!-- AUTO-CONTENT-END:ACTIONS -->
 
@@ -415,54 +403,54 @@ _<sup>Since: {{this}}</sup>_
 
 # Methods
 
-<!-- AUTO-CONTENT-START:METHODS -->## `createAwsS3Client` 
+<!-- AUTO-CONTENT-START:METHODS -->
+
+## `createAwsS3Client`
 
 Creates and returns a new S3 client
 
 ### Parameters
+
 | Property | Type | Default | Description |
 | -------- | ---- | ------- | ----------- |
-*No input parameters.*
+
+_No input parameters._
 
 ### Results
+
 **Type:** `Client`
 
-
-
-
-## `ping` 
+## `ping`
 
 Pings the configured S3 backend
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
+
+| Property  | Type     | Default      | Description                                       |
+| --------- | -------- | ------------ | ------------------------------------------------- |
 | `timeout` | `number` | **required** | Amount of miliseconds to wait for a ping response |
 
 ### Results
+
 **Type:** `PromiseLike.<(boolean|S3PingError)>`
 
-
-
-
-## `listIncompleteUploadsQuery` 
+## `listIncompleteUploadsQuery`
 
 Gets a list of incomplete uploads
 
 ### Parameters
-| Property | Type | Default | Description |
-| -------- | ---- | ------- | ----------- |
-| `bucketName` | `string` | **required** | Amount of miliseconds to wait for a ping response |
-| `prefix` | `string` | **required** | Amount of miliseconds to wait for a ping response |
-| `keyMarker` | `string` | **required** | Amount of miliseconds to wait for a ping response |
+
+| Property         | Type     | Default      | Description                                       |
+| ---------------- | -------- | ------------ | ------------------------------------------------- |
+| `bucketName`     | `string` | **required** | Amount of miliseconds to wait for a ping response |
+| `prefix`         | `string` | **required** | Amount of miliseconds to wait for a ping response |
+| `keyMarker`      | `string` | **required** | Amount of miliseconds to wait for a ping response |
 | `uploadIdMarker` | `string` | **required** | Amount of miliseconds to wait for a ping response |
-| `delimiter` | `string` | **required** | Amount of miliseconds to wait for a ping response |
+| `delimiter`      | `string` | **required** | Amount of miliseconds to wait for a ping response |
 
 ### Results
+
 **Type:** `PromiseLike.<Array.<Object>>`
-
-
-
 
 <!-- AUTO-CONTENT-END:METHODS -->
 
