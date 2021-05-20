@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/bitcomposer/moleculer-aws-s3/badge.svg?branch=main)](https://coveralls.io/github/bitcomposer/moleculer-aws-s3?branch=master)
 [![Known Vulnerabilities](https://snyk.io/test/github/bitcomposer/moleculer-aws-s3/badge.svg)](https://snyk.io/test/github/bitcomposer/moleculer-aws-s3)
 
-# AWS S3 Service for the Moleculer framework [![NPM version](https://img.shields.io/npm/v/moleculer-aws-s3.svg)](https://www.npmjs.com/package/moleculer-aws-s3)
+# AWS S3 Service for the Moleculer framework [![NPM version](https://img.shields.io/npm/v/@bitcomposer/moleculer-aws-s3.svg)](https://www.npmjs.com/package/@bitcomposer/moleculer-aws-s3)
 
 An aws s3 sdk wrapper as a service for the moleculer framework
 
