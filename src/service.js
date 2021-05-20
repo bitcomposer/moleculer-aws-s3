@@ -659,58 +659,6 @@ module.exports = {
           expiresIn: expires ?? 3600
         })
       }
-    },
-    /**
-     * Allows setting policy conditions to a presigned URL for POST operations. Policies such as bucket name to receive object uploads, key name prefixes, expiry policy may be set.
-     *
-     * @actions
-     * @param {object} policy - Policy object created by s3Client.newPostPolicy()
-     * @returns {PromiseLike<{postURL: {string}, formData: {object}}|Error>}
-     */
-    presignedPostPolicy: {
-      params: {
-        policy: {
-          type: 'object',
-          properties: {
-            expires: { type: 'string', optional: true },
-            key: { type: 'string', optional: true },
-            keyStartsWith: { type: 'string', optional: true },
-            bucket: { type: 'string', optional: true },
-            contentType: { type: 'string', optional: true },
-            contentLengthRangeMin: { type: 'number', integer: true, optional: true },
-            contentLengthRangeMax: { type: 'number', integer: true, optional: true }
-          }
-        }
-      },
-      handler(ctx) {
-        const { policy } = ctx.params
-
-        return this.Promise.resolve(ctx.params).then(({ policy }) => {
-          const _policy = this.client.newPostPolicy()
-          if (policy.expires) {
-            _policy.setExpires(new Date(policy.expires))
-          }
-          if (policy.key) {
-            _policy.setKey(policy.key)
-          }
-          if (policy.keyStartsWith) {
-            _policy.setKeyStartsWith(policy.keyStartsWith)
-          }
-          if (policy.bucket) {
-            _policy.setBucket(policy.bucket)
-          }
-          if (policy.contentType) {
-            _policy.setContentType(policy.contentType)
-          }
-          if (policy.contentLengthRangeMin && policy.contentLengthRangeMax) {
-            _policy.setContentLengthRange(
-              policy.contentLengthRangeMin,
-              policy.contentLengthRangeMax
-            )
-          }
-          return this.client.presignedPostPolicy(_policy)
-        })
-      }
     }
   },
 
