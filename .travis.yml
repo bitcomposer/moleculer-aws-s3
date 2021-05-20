@@ -3,6 +3,6 @@ cache:
   directories:
     - node_modules
 node_js:
-  - '10'
+  - '14'
 after_success:
   - npm run coverall

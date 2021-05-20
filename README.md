@@ -1,7 +1,7 @@
 ![Moleculer logo](http://moleculer.services/images/banner.png)
 
-[![Build Status](https://travis-ci.com/bitcomposer/moleculer-aws-s3.svg?branch=master)](https://travis-ci.org/bitcomposer/moleculer-aws-s3)
-[![Coverage Status](https://coveralls.io/repos/github/bitcomposer/moleculer-aws-s3/badge.svg?branch=master)](https://coveralls.io/github/bitcomposer/moleculer-aws-s3?branch=master)
+[![Build Status](https://travis-ci.com/bitcomposer/moleculer-aws-s3.svg?branch=main)](https://travis-ci.org/bitcomposer/moleculer-aws-s3)
+[![Coverage Status](https://coveralls.io/repos/github/bitcomposer/moleculer-aws-s3/badge.svg?branch=main)](https://coveralls.io/github/bitcomposer/moleculer-aws-s3?branch=master)
 [![Known Vulnerabilities](https://snyk.io/test/github/bitcomposer/moleculer-aws-s3/badge.svg)](https://snyk.io/test/github/bitcomposer/moleculer-aws-s3)
 
 # AWS S3 Service for the Moleculer framework [![NPM version](https://img.shields.io/npm/v/moleculer-aws-s3.svg)](https://www.npmjs.com/package/moleculer-aws-s3)
