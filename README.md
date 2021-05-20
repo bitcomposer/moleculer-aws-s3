@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/bitcomposer/moleculer-aws-s3/badge.svg?branch=main)](https://coveralls.io/github/bitcomposer/moleculer-aws-s3?branch=master)
 [![Known Vulnerabilities](https://snyk.io/test/github/bitcomposer/moleculer-aws-s3/badge.svg)](https://snyk.io/test/github/bitcomposer/moleculer-aws-s3)
 
-# AWS S3 Service for the Moleculer framework [![NPM version](https://img.shields.io/npm/v/@bitcomposer/moleculer-aws-s3.svg)](https://www.npmjs.com/package/@bitcomposer/moleculer-aws-s3)
+# AWS S3 Service for the Moleculer framework [![NPM version](https://img.shields.io/npm/v/@pcs/moleculer-aws-s3.svg)](https://www.npmjs.com/package/@pcs/moleculer-aws-s3)
 
 An aws s3 sdk wrapper as a service for the moleculer framework. The project is based on the moleculer-minio project and is intended as a drop in replacement if you feel the need to use version 3 of the aws s3 sdk.
 
