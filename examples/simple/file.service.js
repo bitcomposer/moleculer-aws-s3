@@ -5,7 +5,7 @@ const AwsS3Service = require('../../index')
 
 // Create broker
 let broker = new ServiceBroker({
-  name: 'aws-s3',
+  name: 'file',
   nodeID: 'aws-s3-node',
   logger: console,
   tracing: true,
@@ -16,7 +16,7 @@ let broker = new ServiceBroker({
 
 // Load services
 broker.createService({
-  name: 'aws-s3',
+  name: 'file',
   mixins: AwsS3Service,
   settings: {
     endPoint: 'http://s3.devmonkey.uk',

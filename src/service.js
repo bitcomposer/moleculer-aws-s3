@@ -597,10 +597,11 @@ module.exports = {
       },
       handler(ctx) {
         const { bucketName, objectName, expires, reqParams, requestDate } = ctx.params
-        const command = new GetObjectCommand({
+
+        const params = {
           Bucket: bucketName,
           Key: objectName
-        })
+        }
 
         if (isFunction(reqParams)) {
           reqParams = {}
@@ -608,27 +609,40 @@ module.exports = {
         }
 
         var validRespHeaders = [
-          'response-content-type',
-          'response-content-language',
-          'response-expires',
-          'response-cache-control',
-          'response-content-disposition',
-          'response-content-encoding'
+          { key: 'response-content-type', value: 'ResponseContentType' },
+          { key: 'response-content-language', value: 'ResponseContentLanguage' },
+          { key: 'response-expires', value: 'ResponseExpires' },
+          { key: 'response-cache-control', value: 'ResponseCacheControl' },
+          { key: 'response-content-disposition', value: 'ResponseContentDisposition' },
+          { key: 'response-content-encoding', value: 'ResponseContentEncoding' }
         ]
+
+        // Precheck for header types and error if they aren't string.
         validRespHeaders.forEach(header => {
           if (
             reqParams !== undefined &&
-            reqParams[header] !== undefined &&
-            !isString(reqParams[header])
+            reqParams[header.key] !== undefined &&
+            !isString(reqParams[header.key])
           ) {
-            throw new TypeError(`response header ${header} should be of type "string"`)
+            throw new TypeError(`response header ${header.key} should be of type "string"`)
           }
         })
 
+        validRespHeaders.forEach(header => {
+          if (
+            reqParams !== undefined &&
+            reqParams[header.key] !== undefined &&
+            isString(reqParams[header.key])
+          ) {
+            params[header.value] = reqParams[header.key]
+          }
+        })
+
+        const command = new GetObjectCommand(params)
+
         return getSignedUrl(this.client, command, {
           expiresIn: expires ?? 3600,
-          signingDate: requestDate ?? new Date(),
-          signableHeaders: reqParams
+          signingDate: requestDate ?? new Date()
         })
       }
     },

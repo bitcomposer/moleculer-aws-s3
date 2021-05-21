@@ -24,8 +24,7 @@ describe('Service', () => {
         const requestDate = 'Mon, 01 Jan 2018 00:00:00 GMT'
         const expectedParams = {
           expiresIn: expires,
-          signingDate: requestDate,
-          signableHeaders: reqParams
+          signingDate: requestDate
         }
 
         return Service()
@@ -41,7 +40,8 @@ describe('Service', () => {
           .then(r => {
             const command = new GetObjectCommand({
               Bucket: bucketName,
-              Key: objectName
+              Key: objectName,
+              ResponseContentType: 'bar'
             })
             expect(r).toEqual(url)
             expect(JSON.stringify(mockGetSignedUrl.mock.calls[0][0])).toBe(

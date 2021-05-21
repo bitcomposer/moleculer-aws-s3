@@ -31,7 +31,7 @@ broker.createService({
         authentication: true,
         mappingPolicy: 'restrict',
         aliases: {
-          'POST /putObject': 'stream:aws-s3.putObject'
+          'POST /putObject': 'stream:file.putObject'
         },
         bodyParsers: {
           json: false,
@@ -41,8 +41,8 @@ broker.createService({
       {
         path: '/api',
         whitelist: [
-          // Access any actions in 'aws-s3' service
-          'aws-s3.*'
+          // Access any actions in 'file' service
+          'file.*'
         ],
         bodyParsers: {
           json: true
