@@ -182,7 +182,7 @@ module.exports = {
           const res = await this.client.send(new ListObjectsCommand(params))
           params.Marker = res?.NextMarker
           truncated = res?.IsTruncated
-          objectList = objectList.concat(res.Contents)
+          objectList = objectList.concat(res.Contents ?? [])
         } while (truncated)
 
         return objectList
@@ -220,7 +220,7 @@ module.exports = {
         do {
           const res = await this.client.send(new ListObjectsV2Command(params))
           params.ContinuationToken = res?.NextContinuationToken
-          objectList = objectList.concat(res?.Contents)
+          objectList = objectList.concat(res?.Contents ?? [])
         } while (params.ContinuationToken !== undefined)
 
         return objectList
