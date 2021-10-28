@@ -691,7 +691,7 @@ module.exports = {
       let endpoint
 
       if (this.settings?.endPointIsString == false && this.settings?.endPoint) {
-        enpoint = {
+        endpoint = {
           hostname: this.settings?.endPoint,
           port: this.settings?.port,
           protocol: this.settings?.useSSL ? 'https' : 'http'
