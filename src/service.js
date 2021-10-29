@@ -83,11 +83,11 @@ module.exports = {
           new CreateBucketCommand({
             Bucket: ctx.params.bucketName,
             CreateBucketConfiguration: {
-              LocationConstraint: ctx.params.region ? ctx.params.region : ''
+              LocationConstraint: _.get(ctx, 'params.region', undefined) ? ctx.params.region : ''
             }
           })
         )
-        return ret?.Location
+        return _.get(ret, 'Location', undefined)
       }
     },
     /**
@@ -101,7 +101,9 @@ module.exports = {
       handler() {
         return this.client
           .send(new ListBucketsCommand({}))
-          .then(buckets => (_.isUndefined(buckets?.Buckets) ? [] : buckets?.Buckets))
+          .then(buckets =>
+            _.isUndefined(_.get(buckets, 'Buckets', undefined)) ? [] : buckets.Buckets
+          )
       }
     },
     /**
@@ -120,7 +122,7 @@ module.exports = {
         // HeadBucketCommand always return 200 so it's useless (for minio?).  Search the list of buckets should work.
         const res = await this.client.send(new ListBucketsCommand({}))
 
-        return !!_.find(res?.Buckets, { Name: ctx.params.bucketName })
+        return !!_.find(_.get(res, 'Buckets', undefined), { Name: ctx.params.bucketName })
       }
     },
     /**
@@ -144,7 +146,10 @@ module.exports = {
           )
           return true
         } catch (err) {
-          if (err?.$metadata?.httpStatusCode >= 400 && err?.$metadata?.httpStatusCode < 500) {
+          if (
+            _.get(err, '$metadata.httpStatusCode', undefined) >= 400 &&
+            _.get(err, '$metadata.httpStatusCode', undefined) < 500
+          ) {
             return false
           }
           throw err
@@ -180,9 +185,9 @@ module.exports = {
 
         do {
           const res = await this.client.send(new ListObjectsCommand(params))
-          params.Marker = res?.NextMarker
-          truncated = res?.IsTruncated
-          objectList = objectList.concat(res.Contents ?? [])
+          params.Marker = _.get(res, 'NextMarker', undefined)
+          truncated = _.get(res, 'IsTruncated', undefined)
+          objectList = objectList.concat(res && res.Contents ? res.Contents : [])
         } while (truncated)
 
         return objectList
@@ -219,8 +224,8 @@ module.exports = {
 
         do {
           const res = await this.client.send(new ListObjectsV2Command(params))
-          params.ContinuationToken = res?.NextContinuationToken
-          objectList = objectList.concat(res?.Contents ?? [])
+          params.ContinuationToken = _.get(res, 'NextContinuationToken', undefined)
+          objectList = objectList.concat(res && res.Contents ? res.Contents : [])
         } while (params.ContinuationToken !== undefined)
 
         return objectList
@@ -247,7 +252,7 @@ module.exports = {
         const keyMarker = ''
         const uploadIdMarker = ''
         const delimiter = recursive ? '' : '/'
-        const thePrefix = prefix ?? ''
+        const thePrefix = prefix ? prefix : ''
 
         return this.listIncompleteUploadsQuery(
           bucketName,
@@ -279,7 +284,7 @@ module.exports = {
             Key: ctx.params.objectName
           })
         )
-        return ret?.Body
+        return _.get(ret, 'Body', undefined)
       }
     },
     /**
@@ -325,7 +330,7 @@ module.exports = {
             Range: range
           })
         )
-        return ret?.Body
+        return _.get(ret, 'Body', undefined)
       }
     },
     /**
@@ -374,11 +379,11 @@ module.exports = {
       async handler(ctx) {
         const ret = await this.client.send(
           new PutObjectCommand({
-            Bucket: ctx.meta?.bucketName,
-            Key: ctx.meta?.objectName,
+            Bucket: _.get(ctx, 'meta.bucketName', undefined),
+            Key: _.get(ctx, 'meta.objectName', undefined),
             Body: ctx.params,
-            Metadata: ctx.meta?.metaData,
-            ContentLength: ctx.meta?.size
+            Metadata: _.get(ctx, 'meta.metaData', undefined),
+            ContentLength: _.get(ctx, 'meta.size', undefined)
           })
         )
         return ret
@@ -453,13 +458,13 @@ module.exports = {
             Key: objectName,
             CopySource: sourceObject,
             MetaData: metaData,
-            CopySourceIfMatch: conditions?.matchETag,
-            CopySourceIfModifiedSince: conditions?.modified,
-            CopySourceIfNoneMatch: conditions?.matchETagExcept,
-            CopySourceIfUnmodifiedSince: conditions?.unmodified
+            CopySourceIfMatch: _.get(conditions, 'matchETag', undefined),
+            CopySourceIfModifiedSince: _.get(conditions, 'modified', undefined),
+            CopySourceIfNoneMatch: _.get(conditions, 'matchETagExcept', undefined),
+            CopySourceIfUnmodifiedSince: _.get(conditions, 'unmodified', undefined)
           })
         )
-        return ret?.CopyObjectResult
+        return _.get(ret, 'CopyObjectResult', undefined)
       }
     },
     /**
@@ -534,7 +539,7 @@ module.exports = {
             }
           })
         )
-        return ret?.Deleted
+        return _.get(ret, 'Deleted', undefined)
       }
     },
     /**
@@ -597,6 +602,8 @@ module.exports = {
       },
       handler(ctx) {
         const { bucketName, objectName, expires, reqParams, requestDate } = ctx.params
+        let theReqParams = reqParams
+        let theRequestDate = requestDate
 
         const params = {
           Bucket: bucketName,
@@ -604,11 +611,11 @@ module.exports = {
         }
 
         if (isFunction(reqParams)) {
-          reqParams = {}
-          requestDate = new Date()
+          theReqParams = {}
+          theRequestDate = new Date()
         }
 
-        var validRespHeaders = [
+        const validRespHeaders = [
           { key: 'response-content-type', value: 'ResponseContentType' },
           { key: 'response-content-language', value: 'ResponseContentLanguage' },
           { key: 'response-expires', value: 'ResponseExpires' },
@@ -620,9 +627,9 @@ module.exports = {
         // Precheck for header types and error if they aren't string.
         validRespHeaders.forEach(header => {
           if (
-            reqParams !== undefined &&
-            reqParams[header.key] !== undefined &&
-            !isString(reqParams[header.key])
+            theReqParams !== undefined &&
+            theReqParams[header.key] !== undefined &&
+            !isString(theReqParams[header.key])
           ) {
             throw new TypeError(`response header ${header.key} should be of type "string"`)
           }
@@ -630,19 +637,19 @@ module.exports = {
 
         validRespHeaders.forEach(header => {
           if (
-            reqParams !== undefined &&
-            reqParams[header.key] !== undefined &&
-            isString(reqParams[header.key])
+            theReqParams !== undefined &&
+            theReqParams[header.key] !== undefined &&
+            isString(theReqParams[header.key])
           ) {
-            params[header.value] = reqParams[header.key]
+            params[header.value] = theReqParams[header.key]
           }
         })
 
         const command = new GetObjectCommand(params)
 
         return getSignedUrl(this.client, command, {
-          expiresIn: expires ?? 3600,
-          signingDate: requestDate ?? new Date()
+          expiresIn: expires ? expires : 3600,
+          signingDate: theRequestDate ? theRequestDate : new Date()
         })
       }
     },
@@ -670,7 +677,7 @@ module.exports = {
         })
 
         return getSignedUrl(this.client, command, {
-          expiresIn: expires ?? 3600
+          expiresIn: expires ? expires : 3600
         })
       }
     }
@@ -690,28 +697,31 @@ module.exports = {
     createAwsS3Client() {
       let endpoint
 
-      if (this.settings?.endPointIsString == false && this.settings?.endPoint) {
+      if (
+        _.get(this, 'settings.endPointIsString', undefined) == false &&
+        _.get(this, 'settings.endPoint', undefined)
+      ) {
         endpoint = {
-          hostname: this.settings?.endPoint,
-          port: this.settings?.port,
-          protocol: this.settings?.useSSL ? 'https' : 'http'
+          hostname: _.get(this, 'settings.endPoint', undefined),
+          port: _.get(this, 'settings.port', undefined),
+          protocol: _.get(this, 'settings.useSSL', undefined) ? 'https' : 'http'
         }
       } else {
-        endpoint = this.settings?.endPoint
+        endpoint = _.get(this, 'settings.endPoint', undefined)
       }
 
       const credentials = {
-        accessKeyId: this.settings?.accessKey,
-        secretAccessKey: this.settings?.secretKey
+        accessKeyId: _.get(this, 'settings.accessKey', undefined),
+        secretAccessKey: _.get(this, 'settings.secretKey', undefined)
       }
 
       const s3 = new S3Client({
         // Let the aws lib sort out the endpoint if we are using amz aws.
         endpoint: endpoint,
         credentials,
-        region: this.settings?.region,
+        region: _.get(this, 'settings.region', undefined),
         signatureVersion: 'v4',
-        forcePathStyle: this.setting?.s3ForcePathStyle
+        forcePathStyle: _.get(this, 'settings.s3ForcePathStyle', undefined)
       })
       return s3
     },
@@ -746,7 +756,7 @@ module.exports = {
      */
     async listIncompleteUploadsQuery(bucketName, prefix, keyMarker, uploadIdMarker, delimiter) {
       if (!isValidBucketName(bucketName)) {
-        throw new errors.InvalidBucketNameError('Invalid bucket name: ' + bucketName)
+        throw new TypeError('Invalid bucket name: ' + bucketName)
       }
       if (!isString(prefix)) {
         throw new TypeError('prefix should be of type "string"')
@@ -776,7 +786,7 @@ module.exports = {
         params.KeyMarker = res.NextKeyMarker
         params.UploadIdMarker = res.NextUploadIdMarker
         truncated = res.IsTruncated
-        objectList = objectList.concat(res?.Uploads ?? [])
+        objectList = objectList.concat(_.get(res, 'Uploads', undefined) ? res.Uploads : [])
       } while (truncated)
 
       return objectList
