@@ -83,7 +83,7 @@ module.exports = {
           new CreateBucketCommand({
             Bucket: ctx.params.bucketName,
             CreateBucketConfiguration: {
-              LocationConstraint: ctx.params.region ?? ''
+              LocationConstraint: ctx.params.region ? ctx.params.region : ''
             }
           })
         )

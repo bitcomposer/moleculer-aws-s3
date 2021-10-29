@@ -1,6 +1,6 @@
 {
   "name": "@bitcomposer/moleculer-aws-s3",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "An aws s3 sdk wrapper as a service for the moleculer framework",
   "main": "index.js",
   "scripts": {
