@@ -14,7 +14,7 @@ describe('Service', () => {
     describe('presignedUrl', () => {
       it('creates and returns a Presigned URL for obtaining an Object', () => {
         let context = {
-          client: {},
+          presignerClient: {},
           Promise
         }
         const bucketName = 'some-bucket'
@@ -45,7 +45,7 @@ describe('Service', () => {
             })
             expect(r).toEqual(url)
             expect(JSON.stringify(mockGetSignedUrl.mock.calls[0][0])).toBe(
-              JSON.stringify(context.client)
+              JSON.stringify(context.presignerClient)
             )
             expect(JSON.stringify(mockGetSignedUrl.mock.calls[0][1])).toBe(JSON.stringify(command))
             expect(JSON.stringify(mockGetSignedUrl.mock.calls[0][2])).toBe(
@@ -54,9 +54,9 @@ describe('Service', () => {
           })
       })
 
-      it('rejects with errors encountered', () => {
+      it('rejects with errors encountered', async () => {
         let context = {
-          client: {},
+          presignerClient: {},
           Promise
         }
         const bucketName = 'some-bucket'
@@ -64,7 +64,7 @@ describe('Service', () => {
         const expires = 1535
         const reqParams = { 'response-content-type': 2333 }
 
-        expect(() => {
+        await expect(() => {
           return Service().actions.presignedGetObject.handler.bind(context)({
             params: {
               bucketName,
@@ -73,7 +73,7 @@ describe('Service', () => {
               reqParams
             }
           })
-        }).toThrow(TypeError)
+        }).rejects.toThrow(TypeError)
       })
     })
   })

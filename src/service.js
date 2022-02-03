@@ -98,12 +98,10 @@ module.exports = {
      * @returns {PromiseLike<Bucket[]|Error>}
      */
     listBuckets: {
-      handler() {
-        return this.client
-          .send(new ListBucketsCommand({}))
-          .then(buckets =>
-            _.isUndefined(_.get(buckets, 'Buckets', undefined)) ? [] : buckets.Buckets
-          )
+      async handler() {
+        const buckets = await this.client.send(new ListBucketsCommand({}))
+
+        return _.isUndefined(_.get(buckets, 'Buckets', undefined)) ? [] : buckets.Buckets
       }
     },
     /**
@@ -247,7 +245,7 @@ module.exports = {
         prefix: { type: 'string', optional: true },
         recursive: { type: 'boolean', optional: true }
       },
-      handler(ctx) {
+      async handler(ctx) {
         const { bucketName, prefix, recursive } = ctx.params
         const keyMarker = ''
         const uploadIdMarker = ''
@@ -481,7 +479,7 @@ module.exports = {
         bucketName: { type: 'string' },
         objectName: { type: 'string' }
       },
-      handler(ctx) {
+      async handler(ctx) {
         return this.client.send(
           new HeadObjectCommand({
             Bucket: ctx.params.bucketName,
@@ -504,7 +502,7 @@ module.exports = {
         bucketName: { type: 'string' },
         objectName: { type: 'string' }
       },
-      handler(ctx) {
+      async handler(ctx) {
         return this.client.send(
           new DeleteObjectCommand({
             Bucket: ctx.params.bucketName,
@@ -600,7 +598,7 @@ module.exports = {
         reqParams: { type: 'object', optional: true },
         requestDate: { type: 'string', optional: true }
       },
-      handler(ctx) {
+      async handler(ctx) {
         const { bucketName, objectName, expires, reqParams, requestDate } = ctx.params
         let theReqParams = reqParams
         let theRequestDate = requestDate
@@ -647,7 +645,7 @@ module.exports = {
 
         const command = new GetObjectCommand(params)
 
-        return getSignedUrl(this.client, command, {
+        return getSignedUrl(this.presignerClient, command, {
           expiresIn: expires ? expires : 3600,
           signingDate: theRequestDate ? theRequestDate : new Date()
         })
@@ -669,14 +667,14 @@ module.exports = {
         objectName: { type: 'string' },
         expires: { type: 'number', integer: true, optional: true }
       },
-      handler(ctx) {
+      async handler(ctx) {
         const { bucketName, objectName, expires } = ctx.params
         const command = new PutObjectCommand({
           Bucket: bucketName,
           Key: objectName
         })
 
-        return getSignedUrl(this.client, command, {
+        return getSignedUrl(this.presignerClient, command, {
           expiresIn: expires ? expires : 3600
         })
       }
@@ -809,6 +807,8 @@ module.exports = {
    */
   created() {
     this.client = this.createAwsS3Client()
+    // On fast concurrent calls the presigner seemed to be overwriting the results of the HeadObjectCommand in statObject so I thought it would be wise to give the presigner calls their own client.
+    this.presignerClient = this.createAwsS3Client()
   },
 
   /**

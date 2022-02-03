@@ -15,7 +15,7 @@ describe('Service', () => {
         }))
 
         let context = {
-          client: {},
+          presignerClient: {},
           Promise
         }
         const bucketName = 'some-bucket'
@@ -41,7 +41,7 @@ describe('Service', () => {
 
             expect(r).toEqual(url)
             expect(JSON.stringify(mockGetSignedUrl.mock.calls[0][0])).toBe(
-              JSON.stringify(context.client)
+              JSON.stringify(context.presignerClient)
             )
             expect(JSON.stringify(mockGetSignedUrl.mock.calls[0][1])).toBe(JSON.stringify(command))
             expect(JSON.stringify(mockGetSignedUrl.mock.calls[0][2])).toBe(
